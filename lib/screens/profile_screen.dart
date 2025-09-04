@@ -148,29 +148,34 @@ class ProfileScreen extends StatelessWidget {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 item['icon'] as IconData,
-                size: 32,
+                size: 30,
                 color: AppColors.primaryPurple,
               ),
-              const SizedBox(height: 12),
-              Text(
-                '${item['value']}',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.nightGrey,
+              const SizedBox(height: 8),
+              Flexible(
+                child: Text(
+                  '${item['value']}',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.nightGrey,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                item['title'] as String,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.shadowGrey,
+              const SizedBox(height: 2),
+              Flexible(
+                child: Text(
+                  item['title'] as String,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.shadowGrey,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

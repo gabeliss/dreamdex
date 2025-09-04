@@ -400,19 +400,29 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       _pulseController.stop();
       _waveController.stop();
     } else {
-      await speechService.startListening(
-        onResult: (text) {
-          setState(() {
-            _contentController.text = text;
-            _rawTranscript = text;
-          });
-        },
-      );
-      setState(() {
-        _isRecording = true;
-      });
-      _pulseController.repeat();
-      _waveController.repeat();
+      try {
+        await speechService.startListening(
+          onResult: (text) {
+            setState(() {
+              _contentController.text = text;
+              _rawTranscript = text;
+            });
+          },
+        );
+        setState(() {
+          _isRecording = true;
+        });
+        _pulseController.repeat();
+        _waveController.repeat();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: AppColors.errorRed,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 

@@ -239,20 +239,63 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
     
+    debugPrint('=== STARTING SIGN IN ===');
+    debugPrint('Email: ${_emailController.text.trim()}');
+    
     setState(() => _isLoading = true);
     
     try {
       final auth = ClerkAuth.of(context);
+      debugPrint('Auth instance obtained: ${auth != null}');
+      debugPrint('Is signed in before attempt: ${auth.isSignedIn}');
       
       // Use the correct Clerk API method
+      debugPrint('Calling attemptSignIn...');
       await auth.attemptSignIn(
         identifier: _emailController.text.trim(),
         strategy: Strategy.password,
         password: _passwordController.text,
       );
+      
+      debugPrint('attemptSignIn completed');
+      debugPrint('Is signed in after attempt: ${auth.isSignedIn}');
+      debugPrint('Current user: ${auth.user}');
+      debugPrint('Client sessions: ${auth.client?.sessions?.length ?? 0}');
+      debugPrint('SignIn status: ${auth.client?.signIn?.status}');
+      debugPrint('SignIn identifier: ${auth.client?.signIn?.identifier}');
 
-      // Navigation will be handled automatically by ClerkAuthBuilder
+      // Check if sign-in was successful and navigate explicitly
+      if (mounted && auth.isSignedIn) {
+        debugPrint('Sign in successful! Navigating to home...');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+          (route) => false,
+        );
+      } else {
+        debugPrint('Sign in did not complete - isSignedIn: ${auth.isSignedIn}, mounted: $mounted');
+        
+        // Check the sign-in status and show appropriate error
+        final signInStatus = auth.client?.signIn?.status;
+        if (mounted) {
+          String errorMessage = 'Sign in failed';
+          
+          if (signInStatus == 'needs_first_factor') {
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          } else if (signInStatus != null) {
+            errorMessage = 'Sign in failed: $signInStatus';
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: AppColors.errorRed,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
     } catch (e) {
+      debugPrint('Sign in error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -266,6 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
     }
+    debugPrint('=== SIGN IN COMPLETE ===');
   }
   
   Future<void> _signInWithGoogle() async {
@@ -281,7 +325,13 @@ class _LoginScreenState extends State<LoginScreen> {
         redirectUrl: 'dreamdex://callback',
       );
       
-      // Navigation will be handled automatically by ClerkAuthBuilder
+      // Check if sign-in was successful and navigate explicitly
+      if (mounted && auth.isSignedIn) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+          (route) => false,
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

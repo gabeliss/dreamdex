@@ -43,12 +43,44 @@ class SpeechService extends ChangeNotifier {
   }
 
   Future<bool> _checkMicrophonePermission() async {
-    final status = await Permission.microphone.status;
-    if (status.isDenied) {
-      final result = await Permission.microphone.request();
-      return result.isGranted;
+    // First try to use speech_to_text's built-in permission check
+    try {
+      final hasPermission = await _speech.hasPermission;
+      debugPrint('Speech-to-text permission check: $hasPermission');
+      
+      if (hasPermission) {
+        return true;
+      }
+      
+      // If speech_to_text says no permission, try to initialize it
+      // which will trigger permission request if needed
+      final initialized = await _speech.initialize();
+      debugPrint('Speech initialization result: $initialized');
+      return initialized;
+      
+    } catch (e) {
+      debugPrint('Error checking speech permission: $e');
+      
+      // Fallback to permission_handler as backup
+      final status = await Permission.microphone.status;
+      debugPrint('Fallback microphone permission status: $status');
+      
+      if (status.isGranted) {
+        return true;
+      }
+      
+      if (status.isDenied) {
+        final result = await Permission.microphone.request();
+        debugPrint('Permission request result: $result');
+        return result.isGranted;
+      }
+      
+      if (status.isPermanentlyDenied) {
+        throw Exception('Microphone permission permanently denied. Please enable microphone access in Settings > Privacy & Security > Microphone > DreamDex');
+      }
+      
+      return false;
     }
-    return status.isGranted;
   }
 
   Future<void> startListening({
@@ -67,7 +99,13 @@ class SpeechService extends ChangeNotifier {
     final hasPermission = await _checkMicrophonePermission();
     if (!hasPermission) {
       debugPrint('Microphone permission denied');
-      return;
+      // Check if permanently denied to show appropriate user message
+      final status = await Permission.microphone.status;
+      if (status.isPermanentlyDenied) {
+        throw Exception('Microphone permission permanently denied. Please delete and reinstall the app, or enable microphone access in Settings > Privacy & Security > Microphone > DreamDex');
+      } else {
+        throw Exception('Microphone permission required for voice recording');
+      }
     }
 
     if (_isListening) {
