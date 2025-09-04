@@ -1,0 +1,19 @@
+{
+  "name": "dreamdex-backend",
+  "version": "1.0.0",
+  "description": "Convex backend for Dreamdex app",
+  "main": "convex/_generated/server.js",
+  "scripts": {
+    "dev": "convex dev",
+    "predev": "convex codegen",
+    "build": "convex codegen && tsc"
+  },
+  "keywords": ["dreams", "ai", "convex", "clerk"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "convex": "^1.14.0",
+    "typescript": "^5.2.0"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,57 @@
+name: dreamdex
+description: A mobile app for tracking and analyzing dreams with AI
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  speech_to_text: ^6.3.0
+  permission_handler: ^11.0.1
+  provider: ^6.0.5
+  shared_preferences: ^2.2.2
+  intl: ^0.20.2
+  uuid: ^4.2.1
+  flutter_staggered_animations: ^1.1.1
+  flutter_animate: ^4.2.0+1
+  http: ^1.1.0
+  flutter_dotenv: ^5.1.0
+  path_provider: ^2.1.1
+  cached_network_image: ^3.3.1
+  convex_flutter: ^1.2.0
+  clerk_flutter: ^0.0.3
+  dio: ^5.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    - .env
+  
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
