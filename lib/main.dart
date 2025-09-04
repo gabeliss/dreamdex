@@ -90,14 +90,28 @@ class DreamdexApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  @override
   Widget build(BuildContext context) {
     return ClerkAuthBuilder(
-      signedInBuilder: (context, authState) => const MainNavigation(),
-      signedOutBuilder: (context, authState) => const ClerkAuthentication(),
+      signedInBuilder: (context, authState) {
+        debugPrint('ClerkAuthBuilder: User is signed in');
+        debugPrint('User: ${authState.user}');
+        debugPrint('Sessions: ${authState.client?.sessions?.length ?? 0}');
+        return const MainNavigation();
+      },
+      signedOutBuilder: (context, authState) {
+        debugPrint('ClerkAuthBuilder: User is signed out');
+        debugPrint('Client sessions: ${authState.client?.sessions?.length ?? 0}');
+        return const WelcomeScreen();
+      },
     );
   }
 }

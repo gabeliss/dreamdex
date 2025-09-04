@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:clerk_auth/src/models/client/strategy.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'signup_screen.dart';
@@ -241,10 +242,15 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     
     try {
-      await ClerkAuth.of(context).signIn(
-        emailAddress: _emailController.text.trim(),
+      final auth = ClerkAuth.of(context);
+      
+      // Use the correct Clerk API method
+      await auth.attemptSignIn(
+        identifier: _emailController.text.trim(),
+        strategy: Strategy.password,
         password: _passwordController.text,
       );
+
       // Navigation will be handled automatically by ClerkAuthBuilder
     } catch (e) {
       if (mounted) {
@@ -266,7 +272,15 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     
     try {
-      await ClerkAuth.of(context).signInWithOAuth(provider: OAuthProvider.google);
+      final auth = ClerkAuth.of(context);
+      
+      // Use OAuth Google strategy
+      await auth.attemptSignIn(
+        identifier: '', // Not needed for OAuth
+        strategy: Strategy.oauthGoogle,
+        redirectUrl: 'dreamdex://callback',
+      );
+      
       // Navigation will be handled automatically by ClerkAuthBuilder
     } catch (e) {
       if (mounted) {

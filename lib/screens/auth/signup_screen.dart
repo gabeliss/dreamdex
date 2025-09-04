@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:clerk_auth/clerk_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:clerk_auth/src/models/client/verification.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'login_screen.dart';
@@ -298,55 +301,89 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Future<void> _handleSignup() async {
-    if (!_formKey.currentState!.validate()) {
+bool _codeDialogOpen = false;
+
+Future<void> _handleSignup() async {
+  if (!_formKey.currentState!.validate() || _codeDialogOpen) return;
+  setState(() => _isLoading = true);
+
+  try {
+    final auth = ClerkAuth.of(context);
+
+    if (auth.isSignedIn) {
+      setState(() => _isLoading = false);
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    final parts = _nameController.text.trim().split(' ');
+    final firstName = parts.isNotEmpty ? parts.first : '';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
-    try {
-      final nameParts = _nameController.text.trim().split(' ');
-      final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+    // Start with email code strategy but include all required fields
+    await auth.attemptSignUp(
+      strategy: Strategy.emailCode,
+      emailAddress: _emailController.text.trim(),
+      password: _passwordController.text,
+      passwordConfirmation: _passwordController.text,
+      firstName: firstName.isNotEmpty ? firstName : null,
+      lastName: lastName.isNotEmpty ? lastName : null,
+    );
 
-      await ClerkAuth.of(context).signUp(
-        emailAddress: _emailController.text.trim(),
-        password: _passwordController.text,
-        firstName: firstName,
-        lastName: lastName,
-      );
+    debugPrint('=== AFTER COMBINED SIGNUP ===');
+    final su = auth.client?.signUp;
+    debugPrint('Signup status: ${su?.status}');
+    debugPrint('Missing fields: ${su?.missingFields}');
+    debugPrint('IsSignedIn: ${auth.isSignedIn}');
+    debugPrint('==============================');
 
-      // Navigation will be handled automatically by ClerkAuthBuilder
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign up failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+    if (mounted) {
+      // If already signed in, signup completed immediately
+      if (auth.isSignedIn) {
+        debugPrint('Signup completed immediately! Navigating to home...');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+          (route) => false,
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      } else {
+        // Otherwise show verification dialog
+        debugPrint('Email verification required, showing dialog...');
+        _codeDialogOpen = true;
+        _showEmailVerificationDialog();
       }
     }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign up failed: $e'), backgroundColor: Colors.red),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
-
+}
   Future<void> _handleGoogleSignup() async {
+    debugPrint('Starting Google signup...');
+    
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await ClerkAuth.of(context).signInWithOAuth(provider: OAuthProvider.google);
+      final auth = ClerkAuth.of(context);
+      
+      debugPrint('Calling attemptSignUp with Strategy.oauthGoogle...');
+      final result = await auth.attemptSignUp(
+        strategy: Strategy.oauthGoogle,
+        redirectUrl: 'dreamdex://callback',
+      );
+      
+      debugPrint('Google signup result: $result');
+      debugPrint('Google signup - Is signed in: ${auth.isSignedIn}');
+      debugPrint('Google signup - Current user: ${auth.user}');
+      
       // Navigation will be handled automatically by ClerkAuthBuilder
     } catch (e) {
+      debugPrint('Google signup error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -383,4 +420,106 @@ class _SignupScreenState extends State<SignupScreen> {
       ),
     );
   }
+
+  void _showEmailVerificationDialog() {
+    final codeController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Verify Your Email'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'We sent a verification code to ${_emailController.text.trim()}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                decoration: const InputDecoration(
+                  labelText: 'Verification Code',
+                  hintText: 'Enter 6-digit code',
+                ),
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _codeDialogOpen = false; // allow re-signup
+                setState(() => _isLoading = false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => _verifyEmailCode(codeController.text),
+              child: const Text('Verify'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+Future<void> _verifyEmailCode(String code) async {
+  if (code.length != 6) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter a 6-digit code'), backgroundColor: Colors.red),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+  try {
+    final auth = ClerkAuth.of(context);
+
+    debugPrint('=== STARTING EMAIL VERIFICATION ===');
+    debugPrint('Code entered: $code');
+    debugPrint('Current signup status before verify: ${auth.client?.signUp?.status}');
+
+    // 2) Verify the email code - include password in case Clerk needs it
+    await auth.attemptSignUp(
+      strategy: Strategy.emailCode, 
+      code: code,
+      emailAddress: _emailController.text.trim(),
+      password: _passwordController.text,
+      passwordConfirmation: _passwordController.text,
+    );
+
+    debugPrint('=== AFTER EMAIL CODE VERIFICATION ===');
+    debugPrint('Status: ${auth.client?.signUp?.status}');
+    debugPrint('IsSignedIn: ${auth.isSignedIn}');
+    debugPrint('=====================================');
+
+    if (mounted) {
+      Navigator.of(context).pop(); // Close verification dialog
+      _codeDialogOpen = false;
+      
+      // If user is now signed in, navigate to home
+      if (auth.isSignedIn) {
+        debugPrint('Signup complete! Navigating to home...');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+          (route) => false,
+        );
+      }
+    }
+  } catch (e) {
+    debugPrint('Verification failed: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Verification failed: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
 }
