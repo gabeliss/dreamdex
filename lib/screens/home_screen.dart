@@ -20,11 +20,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -32,21 +34,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Consumer<DreamService>(
-          builder: (context, dreamService, child) {
-            final dreams = _searchQuery.isEmpty
-                ? dreamService.dreams
-                : dreamService.searchDreams(_searchQuery);
-
-            return CustomScrollView(
-              slivers: [
-                _buildHeader(dreamService),
-                if (dreamService.dreams.isNotEmpty) _buildStats(dreamService),
-                _buildSearchBar(),
-                _buildDreamsList(dreams, dreamService),
-              ],
-            );
+        child: GestureDetector(
+          onTap: () {
+            // Dismiss keyboard when tapping outside
+            FocusScope.of(context).unfocus();
           },
+          child: Consumer<DreamService>(
+            builder: (context, dreamService, child) {
+              final dreams = _searchQuery.isEmpty
+                  ? dreamService.dreams
+                  : dreamService.searchDreams(_searchQuery);
+
+              return CustomScrollView(
+                slivers: [
+                  _buildHeader(dreamService),
+                  if (dreamService.dreams.isNotEmpty) _buildStats(dreamService),
+                  _buildSearchBar(),
+                  _buildDreamsList(dreams, dreamService),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -140,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: TextField(
           controller: _searchController,
+          focusNode: _searchFocusNode,
           onChanged: (value) {
             setState(() {
               _searchQuery = value;

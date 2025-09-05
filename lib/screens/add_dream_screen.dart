@@ -146,6 +146,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
 
   Widget _buildVoiceRecordingSection(SpeechService speechService) {
     return Container(
+      width: double.infinity, // Make container take full width
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: AppColors.dreamGradient,
