@@ -47,28 +47,50 @@ class AIService extends ChangeNotifier {
       final prompt = _createImagePrompt(dreamDescription);
       
       final response = await http.post(
-        Uri.parse('$_baseUrl/models/imagen-3.0-generate-001:generateImage?key=$_apiKey'),
+        Uri.parse('$_baseUrl/models/gemini-2.5-flash-image-preview:generateContent'),
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': _apiKey!,
         },
         body: jsonEncode({
-          'prompt': prompt,
-          'number_of_images': 1,
-          'aspect_ratio': '1:1',
-          'safety_filter_level': 'block_some',
-          'person_generation': 'allow_adult',
+          'contents': [{
+            'parts': [
+              {'text': prompt}
+            ]
+          }]
         }),
       );
 
+      debugPrint('Image generation response: ${response.statusCode}');
+      debugPrint('Image generation response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['generated_images'] != null && data['generated_images'].isNotEmpty) {
-          final imageData = data['generated_images'][0]['image'];
-          
-          // Save image locally
-          final localPath = await _saveImageLocally(imageData);
-          return localPath;
+        
+        // Check if we have candidates with images
+        if (data['candidates'] != null && data['candidates'].isNotEmpty) {
+          final candidate = data['candidates'][0];
+          if (candidate['content'] != null && 
+              candidate['content']['parts'] != null &&
+              candidate['content']['parts'].isNotEmpty) {
+            
+            // Look for image data in the parts
+            for (var part in candidate['content']['parts']) {
+              if (part['inlineData'] != null && part['inlineData']['data'] != null) {
+                final imageData = part['inlineData']['data'];
+                
+                // Save image locally
+                final localPath = await _saveImageLocally(imageData);
+                
+                _isGeneratingImage = false;
+                notifyListeners();
+                return localPath;
+              }
+            }
+          }
         }
+        
+        debugPrint('No image data found in response');
       } else {
         debugPrint('Image generation failed: ${response.statusCode} - ${response.body}');
       }
@@ -82,14 +104,17 @@ class AIService extends ChangeNotifier {
   }
 
   String _createImagePrompt(String dreamDescription) {
-    return """Create a dreamy, surreal artistic representation of this dream: "$dreamDescription"
+    return """Create an artistic visual representation of this dream: "$dreamDescription"
 
-Style: Dreamlike, ethereal, soft lighting, magical realism, impressionistic
-Colors: Soft pastels, purples, blues, warm glows
-Mood: Mystical, peaceful, otherworldly
-Quality: High detail, artistic, beautiful
+Instructions:
+- Interpret the dream content literally but with a dreamlike, surreal quality
+- Match the mood and atmosphere described in the dream (dark/light, peaceful/chaotic, etc.)
+- Use colors and lighting that reflect the dream's emotional tone
+- Include the specific elements, characters, and settings mentioned
+- Add a subtle dream-like quality: soft edges, floating elements, impossible perspectives, or shifting realities
+- Style should feel like a vivid dream memory - clear enough to recognize but with that otherworldly dream logic
 
-The image should capture the essence and emotion of the dream rather than literal elements. Make it feel like a memory or a painting of a dream.""";
+Avoid making every image look the same - let the dream content drive the visual style, colors, and composition.""";
   }
 
   Future<String> _saveImageLocally(String base64Image) async {
