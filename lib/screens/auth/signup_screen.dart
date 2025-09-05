@@ -8,6 +8,7 @@ import 'package:clerk_auth/src/models/client/verification.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'login_screen.dart';
+import '../../services/convex_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -339,7 +340,23 @@ Future<void> _handleSignup() async {
     if (mounted) {
       // If already signed in, signup completed immediately
       if (auth.isSignedIn) {
-        debugPrint('Signup completed immediately! Navigating to home...');
+        debugPrint('Signup completed immediately! Syncing user to Convex...');
+        
+        // Sync user to Convex
+        final convexService = Provider.of<ConvexService>(context, listen: false);
+        final user = auth.client?.user;
+        
+        if (user != null) {
+          await convexService.upsertUser(
+            clerkId: user.id,
+            email: user.email ?? '',
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImageUrl: user.profileImageUrl,
+          );
+        }
+        
+        debugPrint('User sync complete! Navigating to home...');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainNavigation()),
           (route) => false,
@@ -502,9 +519,25 @@ Future<void> _verifyEmailCode(String code) async {
       Navigator.of(context).pop(); // Close verification dialog
       _codeDialogOpen = false;
       
-      // If user is now signed in, navigate to home
+      // If user is now signed in, sync user to Convex and navigate to home
       if (auth.isSignedIn) {
-        debugPrint('Signup complete! Navigating to home...');
+        debugPrint('Signup complete! Syncing user to Convex...');
+        
+        // Sync user to Convex
+        final convexService = Provider.of<ConvexService>(context, listen: false);
+        final user = auth.client?.user;
+        
+        if (user != null) {
+          await convexService.upsertUser(
+            clerkId: user.id,
+            email: user.email ?? '',
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImageUrl: user.profileImageUrl,
+          );
+        }
+        
+        debugPrint('User sync complete! Navigating to home...');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainNavigation()),
           (route) => false,

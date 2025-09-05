@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/dream.dart';
 
 class ConvexService extends ChangeNotifier {
@@ -17,12 +18,15 @@ class ConvexService extends ChangeNotifier {
   }
 
   Future<void> _initializeService() async {
-    // You'll need to add your Convex deployment URL to .env
-    _convexUrl = const String.fromEnvironment('CONVEX_URL');
+    // Load Convex URL from environment variables
+    _convexUrl = dotenv.env['CONVEX_URL'];
     
     if (_convexUrl != null && _convexUrl!.isNotEmpty) {
+      debugPrint('ConvexService initialized with URL: $_convexUrl');
       _isInitialized = true;
       notifyListeners();
+    } else {
+      debugPrint('ConvexService: CONVEX_URL not found in environment');
     }
   }
 
@@ -40,7 +44,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/query',
         data: {
-          'function': 'dreams:list',
+          'path': 'dreams:list',
           'args': {'userId': _userId},
         },
       );
@@ -69,7 +73,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/mutation',
         data: {
-          'function': 'dreams:create',
+          'path': 'dreams:create',
           'args': dreamData,
         },
       );
@@ -96,7 +100,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/mutation',
         data: {
-          'function': 'dreams:update',
+          'path': 'dreams:update',
           'args': {
             'id': dream.id,
             'updates': dreamData,
@@ -120,7 +124,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/mutation',
         data: {
-          'function': 'dreams:remove',
+          'path': 'dreams:remove',
           'args': {'id': dreamId, 'userId': _userId},
         },
       );
@@ -141,7 +145,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/query',
         data: {
-          'function': 'dreams:search',
+          'path': 'dreams:search',
           'args': {
             'userId': _userId,
             'query': query,
@@ -174,7 +178,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/query',
         data: {
-          'function': 'dreams:stats',
+          'path': 'dreams:stats',
           'args': {'userId': _userId},
         },
       );
@@ -192,6 +196,84 @@ class ConvexService extends ChangeNotifier {
       'thisMonth': 0,
       'favorites': 0,
     };
+  }
+
+  // Create or update user in Convex
+  Future<String?> upsertUser({
+    required String clerkId,
+    required String email,
+    String? firstName,
+    String? lastName,
+    String? profileImageUrl,
+  }) async {
+    debugPrint('=== CONVEX UPSERT USER ===');
+    debugPrint('ConvexService initialized: $_isInitialized');
+    debugPrint('Convex URL: $_convexUrl');
+    debugPrint('Clerk ID: $clerkId');
+    debugPrint('Email: $email');
+    debugPrint('First Name: $firstName');
+    debugPrint('Last Name: $lastName');
+    
+    if (!_isInitialized) {
+      debugPrint('ConvexService not initialized, aborting user sync');
+      return null;
+    }
+
+    try {
+      // Build args object, excluding null values for optional fields
+      final Map<String, dynamic> args = {
+        'clerkId': clerkId,
+        'email': email,
+      };
+      
+      // Only add optional fields if they're not null
+      if (firstName != null && firstName.isNotEmpty) {
+        args['firstName'] = firstName;
+      }
+      if (lastName != null && lastName.isNotEmpty) {
+        args['lastName'] = lastName;
+      }
+      if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+        args['profileImageUrl'] = profileImageUrl;
+      }
+      
+      final payload = {
+        'path': 'users:upsert',
+        'args': args,
+      };
+      
+      debugPrint('API Payload: $payload');
+      
+      final response = await _dio.post(
+        '$_convexUrl/api/mutation',
+        data: payload,
+      );
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        // Check if the response contains an error
+        if (response.data is Map<String, dynamic> && 
+            response.data['status'] == 'error') {
+          debugPrint('❌ Convex API returned error: ${response.data['errorMessage']}');
+          return null;
+        } else {
+          debugPrint('✅ User synced to Convex successfully: $email');
+          return response.data.toString();
+        }
+      } else {
+        debugPrint('❌ Unexpected response status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error syncing user to Convex: $e');
+      if (e.toString().contains('DioException')) {
+        debugPrint('This is likely a network or API format issue');
+      }
+    }
+
+    debugPrint('=== END CONVEX UPSERT ===');
+    return null;
   }
 
   // Sync local dreams to Convex (for migration)

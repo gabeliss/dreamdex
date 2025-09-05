@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
 import '../theme/app_colors.dart';
 import '../services/dream_service.dart';
+import 'auth/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -217,6 +219,13 @@ class ProfileScreen extends StatelessWidget {
         'icon': Icons.info,
         'onTap': () => _showAboutDialog(context),
       },
+      {
+        'title': 'Sign Out',
+        'subtitle': 'Sign out of your account',
+        'icon': Icons.logout,
+        'onTap': () => _handleSignOut(context),
+        'isDestructive': true,
+      },
     ];
 
     return Column(
@@ -232,27 +241,40 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         ...settingsItems.map((item) {
+          final isDestructive = item['isDestructive'] == true;
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.ultraLightPurple,
+                  color: isDestructive ? Colors.red.withOpacity(0.1) : AppColors.ultraLightPurple,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   item['icon'] as IconData,
-                  color: AppColors.primaryPurple,
+                  color: isDestructive ? Colors.red : AppColors.primaryPurple,
                   size: 20,
                 ),
               ),
               title: Text(
                 item['title'] as String,
-                style: const TextStyle(fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: isDestructive ? Colors.red : null,
+                ),
               ),
-              subtitle: Text(item['subtitle'] as String),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              subtitle: Text(
+                item['subtitle'] as String,
+                style: TextStyle(
+                  color: isDestructive ? Colors.red.withOpacity(0.7) : null,
+                ),
+              ),
+              trailing: Icon(
+                Icons.arrow_forward_ios, 
+                size: 16,
+                color: isDestructive ? Colors.red : null,
+              ),
               onTap: item['onTap'] as VoidCallback,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -301,6 +323,51 @@ class ProfileScreen extends StatelessWidget {
       children: const [
         Text('A beautiful app for tracking and analyzing your dreams with AI.'),
       ],
+    );
+  }
+
+  void _handleSignOut(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              
+              try {
+                final auth = ClerkAuth.of(context);
+                await auth.signOut();
+                
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Sign out failed: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
     );
   }
 }

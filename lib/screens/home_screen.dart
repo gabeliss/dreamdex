@@ -59,7 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ClerkAuthBuilder(
           signedInBuilder: (context, authState) {
             final user = authState.user;
-            final userName = user?.firstName ?? 'Dreamer';
+            final userName = user?.firstName ?? 
+                             user?.email?.split('@')[0] ?? 
+                             'Dreamer';
             
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,

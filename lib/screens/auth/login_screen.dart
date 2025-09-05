@@ -6,6 +6,7 @@ import 'package:clerk_auth/src/models/client/strategy.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'signup_screen.dart';
+import '../../services/convex_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -266,7 +267,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Check if sign-in was successful and navigate explicitly
       if (mounted && auth.isSignedIn) {
-        debugPrint('Sign in successful! Navigating to home...');
+        debugPrint('Sign in successful! Syncing user to Convex...');
+        
+        // Sync user to Convex
+        final convexService = Provider.of<ConvexService>(context, listen: false);
+        final user = auth.client?.user;
+        
+        if (user != null) {
+          await convexService.upsertUser(
+            clerkId: user.id,
+            email: user.email ?? '',
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImageUrl: user.profileImageUrl,
+          );
+        }
+        
+        debugPrint('User sync complete! Navigating to home...');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainNavigation()),
           (route) => false,

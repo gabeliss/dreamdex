@@ -90,13 +90,18 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Consumer3<SpeechService, DreamService, AIService>(
-          builder: (context, speechService, dreamService, aiService, child) {
-            return SingleChildScrollView(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: GestureDetector(
+          onTap: () {
+            // Dismiss keyboard when tapping outside text fields
+            FocusScope.of(context).unfocus();
+          },
+          child: Consumer3<SpeechService, DreamService, AIService>(
+            builder: (context, speechService, dreamService, aiService, child) {
+              return SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 30),
@@ -116,6 +121,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
               ),
             );
           },
+        ),
         ),
       ),
     );
