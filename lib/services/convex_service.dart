@@ -50,8 +50,30 @@ class ConvexService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((dreamJson) => Dream.fromJson(dreamJson)).toList();
+        // Check if response contains an error
+        if (response.data is Map<String, dynamic> && 
+            response.data['status'] == 'error') {
+          debugPrint('❌ Convex API returned error: ${response.data['errorMessage']}');
+          return [];
+        }
+        
+        // Handle both response formats
+        List<dynamic> dreamsList = [];
+        
+        if (response.data is List<dynamic>) {
+          // Direct array response
+          dreamsList = response.data;
+        } else if (response.data is Map<String, dynamic> && 
+                   response.data['status'] == 'success' &&
+                   response.data['value'] is List<dynamic>) {
+          // New format: {status: 'success', value: [...]}
+          dreamsList = response.data['value'];
+        } else {
+          debugPrint('❌ Unexpected response format: ${response.data}');
+          return [];
+        }
+        
+        return dreamsList.map((dreamJson) => Dream.fromJson(dreamJson)).toList();
       }
     } catch (e) {
       debugPrint('Error fetching dreams from Convex: $e');
@@ -61,14 +83,30 @@ class ConvexService extends ChangeNotifier {
   }
 
   Future<String?> createDream(Dream dream) async {
+    debugPrint('=== CONVEX CREATE DREAM ===');
+    debugPrint('ConvexService initialized: $_isInitialized');
+    debugPrint('User ID: $_userId');
+    debugPrint('Dream title: ${dream.title}');
+    
     if (!_isInitialized || _userId == null) {
+      debugPrint('ConvexService not initialized or userId null, aborting dream creation');
       return null;
     }
 
     try {
       final dreamData = dream.toJson();
       dreamData['userId'] = _userId;
-      dreamData['_creationTime'] = DateTime.now().millisecondsSinceEpoch;
+      
+      // Remove null values and system fields that Convex handles automatically
+      dreamData.removeWhere((key, value) => 
+          value == null || 
+          key == '_creationTime' || 
+          key == '_id' ||
+          key == 'id' ||
+          key == 'createdAt'
+      );
+
+      debugPrint('Dream data: $dreamData');
 
       final response = await _dio.post(
         '$_convexUrl/api/mutation',
@@ -78,11 +116,37 @@ class ConvexService extends ChangeNotifier {
         },
       );
 
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        return response.data['_id'];
+        // Check if the response contains an error
+        if (response.data is Map<String, dynamic> && 
+            response.data['status'] == 'error') {
+          debugPrint('❌ Convex API returned error: ${response.data['errorMessage']}');
+          return null;
+        }
+        
+        // Extract the ID from successful response
+        final responseData = response.data;
+        String? dreamId;
+        
+        if (responseData is Map<String, dynamic>) {
+          if (responseData['status'] == 'success' && responseData['value'] != null) {
+            dreamId = responseData['value'].toString();
+          }
+        } else {
+          // Direct ID response
+          dreamId = responseData?.toString();
+        }
+        
+        debugPrint('✅ Dream created successfully with ID: $dreamId');
+        return dreamId;
+      } else {
+        debugPrint('❌ Unexpected response status: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error creating dream in Convex: $e');
+      debugPrint('❌ Error creating dream in Convex: $e');
     }
 
     return null;
@@ -96,6 +160,9 @@ class ConvexService extends ChangeNotifier {
     try {
       final dreamData = dream.toJson();
       dreamData['userId'] = _userId;
+      
+      // Remove null values for optional fields to avoid validation errors
+      dreamData.removeWhere((key, value) => value == null);
 
       final response = await _dio.post(
         '$_convexUrl/api/mutation',

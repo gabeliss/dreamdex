@@ -105,6 +105,21 @@ class _AuthGateState extends State<AuthGate> {
         debugPrint('ClerkAuthBuilder: User is signed in');
         debugPrint('User: ${authState.user}');
         debugPrint('Sessions: ${authState.client?.sessions?.length ?? 0}');
+        
+        // Set userId in ConvexService for existing authenticated users
+        if (authState.user != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final convexService = Provider.of<ConvexService>(context, listen: false);
+            final dreamService = Provider.of<DreamService>(context, listen: false);
+            convexService.setUserId(authState.user!.id);
+            debugPrint('Set userId in ConvexService: ${authState.user!.id}');
+            
+            // Refresh dreams after setting userId
+            dreamService.refreshDreams();
+            debugPrint('Refreshing dreams after authentication');
+          });
+        }
+        
         return const MainNavigation();
       },
       signedOutBuilder: (context, authState) {

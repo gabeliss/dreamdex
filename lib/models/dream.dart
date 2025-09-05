@@ -132,11 +132,15 @@ class Dream {
 
   factory Dream.fromJson(Map<String, dynamic> json) {
     return Dream(
-      id: json['id'],
-      title: json['title'],
-      content: json['content'],
-      rawTranscript: json['rawTranscript'],
-      createdAt: DateTime.parse(json['createdAt']),
+      id: json['_id'] ?? json['id'], // Handle Convex _id format
+      title: json['title'] ?? '',
+      content: json['content'] ?? '',
+      rawTranscript: json['rawTranscript'] ?? '',
+      createdAt: json['_creationTime'] != null 
+          ? DateTime.fromMillisecondsSinceEpoch(json['_creationTime'].toInt())
+          : (json['createdAt'] != null 
+              ? DateTime.parse(json['createdAt'])
+              : DateTime.now()),
       type: DreamType.values.firstWhere(
         (t) => t.name == json['type'],
         orElse: () => DreamType.normal,

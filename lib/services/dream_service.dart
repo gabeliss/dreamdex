@@ -38,6 +38,11 @@ class DreamService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Public method to refresh dreams (e.g., after authentication)
+  Future<void> refreshDreams() async {
+    await _loadDreams();
+  }
+
 
   Future<void> addDream(Dream dream) async {
     try {

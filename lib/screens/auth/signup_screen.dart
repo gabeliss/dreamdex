@@ -347,6 +347,9 @@ Future<void> _handleSignup() async {
         final user = auth.client?.user;
         
         if (user != null) {
+          // Set the userId for dream operations
+          convexService.setUserId(user.id);
+          
           await convexService.upsertUser(
             clerkId: user.id,
             email: user.email ?? '',
@@ -528,6 +531,9 @@ Future<void> _verifyEmailCode(String code) async {
         final user = auth.client?.user;
         
         if (user != null) {
+          // Set the userId for dream operations
+          convexService.setUserId(user.id);
+          
           await convexService.upsertUser(
             clerkId: user.id,
             email: user.email ?? '',
