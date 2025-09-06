@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { action, internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 // Query to list all dreams for a user
 export const list = query({
@@ -37,7 +39,7 @@ export const create = mutation({
     content: v.string(),
     rawTranscript: v.string(),
     type: v.string(),
-    aiGeneratedImageUrl: v.optional(v.string()),
+    aiGeneratedImageStorageId: v.optional(v.id("_storage")),
     aiImagePrompt: v.optional(v.string()),
     isGeneratingImage: v.optional(v.boolean()),
     tags: v.array(v.string()),
@@ -59,7 +61,7 @@ export const create = mutation({
       content: args.content,
       rawTranscript: args.rawTranscript,
       type: args.type,
-      aiGeneratedImageUrl: args.aiGeneratedImageUrl,
+      aiGeneratedImageStorageId: args.aiGeneratedImageStorageId,
       aiImagePrompt: args.aiImagePrompt,
       isGeneratingImage: args.isGeneratingImage ?? false,
       tags: args.tags,
@@ -92,7 +94,7 @@ export const update = mutation({
       title: v.optional(v.string()),
       content: v.optional(v.string()),
       type: v.optional(v.string()),
-      aiGeneratedImageUrl: v.optional(v.string()),
+      aiGeneratedImageStorageId: v.optional(v.id("_storage")),
       aiImagePrompt: v.optional(v.string()),
       isGeneratingImage: v.optional(v.boolean()),
       tags: v.optional(v.array(v.string())),
@@ -233,5 +235,116 @@ export const getFavorites = query({
       .collect();
     
     return dreams;
+  },
+});
+
+// Mutation to generate upload URL for dream images
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Mutation to update dream with storage ID after image upload
+export const updateDreamWithImage = mutation({
+  args: {
+    dreamId: v.id("dreams"),
+    userId: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const dream = await ctx.db.get(args.dreamId);
+    if (!dream || dream.userId !== args.userId) {
+      throw new Error("Dream not found or access denied");
+    }
+    
+    await ctx.db.patch(args.dreamId, {
+      aiGeneratedImageStorageId: args.storageId,
+      isGeneratingImage: false,
+    });
+    
+    return args.storageId;
+  },
+});
+
+// Query to get image URL from storage ID
+export const getImageUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    const url = await ctx.storage.getUrl(args.storageId);
+    return url;
+  },
+});
+
+// Query to get dreams with image URLs resolved
+export const listWithImageUrls = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const dreams = await ctx.db
+      .query("dreams")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .collect();
+    
+    // Resolve image URLs for dreams that have storage IDs
+    const dreamsWithUrls = await Promise.all(
+      dreams.map(async (dream) => {
+        let imageUrl = null;
+        if (dream.aiGeneratedImageStorageId) {
+          imageUrl = await ctx.storage.getUrl(dream.aiGeneratedImageStorageId);
+        }
+        
+        return {
+          ...dream,
+          aiGeneratedImageUrl: imageUrl,
+        };
+      })
+    );
+    
+    return dreamsWithUrls;
+  },
+});
+
+// Query to get a single dream with image URL resolved
+export const getWithImageUrl = query({
+  args: { id: v.id("dreams"), userId: v.string() },
+  handler: async (ctx, args) => {
+    const dream = await ctx.db.get(args.id);
+    
+    if (!dream || dream.userId !== args.userId) {
+      return null;
+    }
+    
+    let imageUrl = null;
+    if (dream.aiGeneratedImageStorageId) {
+      imageUrl = await ctx.storage.getUrl(dream.aiGeneratedImageStorageId);
+    }
+    
+    return {
+      ...dream,
+      aiGeneratedImageUrl: imageUrl,
+    };
+  },
+});
+
+// Internal mutation to update dream with storage ID (called from action)
+export const updateImageStorageId = internalMutation({
+  args: {
+    dreamId: v.id("dreams"),
+    userId: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const dream = await ctx.db.get(args.dreamId);
+    if (!dream || dream.userId !== args.userId) {
+      throw new Error("Dream not found or access denied");
+    }
+    
+    await ctx.db.patch(args.dreamId, {
+      aiGeneratedImageStorageId: args.storageId,
+      isGeneratingImage: false,
+    });
+    
+    return args.storageId;
   },
 });

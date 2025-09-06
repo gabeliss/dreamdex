@@ -44,7 +44,7 @@ class DreamService extends ChangeNotifier {
   }
 
 
-  Future<void> addDream(Dream dream) async {
+  Future<Dream?> addDream(Dream dream) async {
     try {
       final dreamId = await _convexService.createDream(dream);
       if (dreamId != null) {
@@ -64,11 +64,13 @@ class DreamService extends ChangeNotifier {
         );
         _dreams.insert(0, savedDream);
         notifyListeners();
+        return savedDream;
       }
     } catch (e) {
       debugPrint('Error adding dream: $e');
       rethrow;
     }
+    return null;
   }
 
   Future<void> updateDream(Dream updatedDream) async {
@@ -123,6 +125,45 @@ class DreamService extends ChangeNotifier {
     return _dreams.where((dream) {
       return dream.createdAt.isAfter(start) && dream.createdAt.isBefore(end);
     }).toList();
+  }
+
+  // Generate image for an existing dream
+  Future<bool> generateImageForDream(String dreamId, String userId, String dreamDescription) async {
+    try {
+      // Update dream to show it's generating
+      final dreamIndex = _dreams.indexWhere((d) => d.id == dreamId);
+      if (dreamIndex == -1) return false;
+      
+      final dream = _dreams[dreamIndex];
+      final updatingDream = dream.copyWith(isGeneratingImage: true);
+      _dreams[dreamIndex] = updatingDream;
+      notifyListeners();
+      
+      // Generate and store the image in Convex
+      await _convexService.uploadImage(
+        base64Image: dreamDescription, // This will be handled by AIService
+        dreamId: dreamId,
+        userId: userId,
+      );
+      
+      // Refresh dreams to get the updated dream with image URL
+      await _loadDreams();
+      
+      return true;
+    } catch (e) {
+      debugPrint('Error generating image for dream: $e');
+      
+      // Reset generating state on error
+      final dreamIndex = _dreams.indexWhere((d) => d.id == dreamId);
+      if (dreamIndex != -1) {
+        final dream = _dreams[dreamIndex];
+        final updatedDream = dream.copyWith(isGeneratingImage: false);
+        _dreams[dreamIndex] = updatedDream;
+        notifyListeners();
+      }
+      
+      return false;
+    }
   }
 
   Map<String, int> getDreamStats() {

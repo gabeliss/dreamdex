@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +7,7 @@ import '../models/dream.dart';
 import '../services/dream_service.dart';
 import '../services/speech_service.dart';
 import '../services/ai_service.dart';
+import '../services/convex_service.dart';
 
 class AddDreamScreen extends StatefulWidget {
   const AddDreamScreen({super.key});
@@ -27,7 +28,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   bool _isRecording = false;
   bool _isSaving = false;
   String _rawTranscript = '';
-  String? _generatedImagePath;
+  String? _generatedImageData; // Store base64 image data temporarily
   late AnimationController _pulseController;
   late AnimationController _waveController;
 
@@ -326,14 +327,14 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 16),
-        if (_generatedImagePath != null) ...[
+        if (_generatedImageData != null) ...[
           Container(
             width: double.infinity,
             height: 200,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               image: DecorationImage(
-                image: FileImage(File(_generatedImagePath!)),
+                image: MemoryImage(base64Decode(_generatedImageData!)),
                 fit: BoxFit.cover,
               ),
             ),
@@ -359,7 +360,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
             label: Text(
               aiService.isGeneratingImage
                   ? 'Generating Image...'
-                  : _generatedImagePath != null
+                  : _generatedImageData != null
                       ? 'Regenerate Image'
                       : 'Generate Dream Image',
             ),
@@ -453,10 +454,32 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       content: _contentController.text.trim(),
       rawTranscript: _rawTranscript,
       type: _selectedType,
-      aiGeneratedImageUrl: _generatedImagePath,
     );
 
-    await dreamService.addDream(dream);
+    final savedDream = await dreamService.addDream(dream);
+
+    // If we have generated image data and the dream was saved, store the image in Convex
+    if (savedDream != null && _generatedImageData != null) {
+      try {
+        final convexService = Provider.of<ConvexService>(context, listen: false);
+        await convexService.uploadImage(
+          base64Image: _generatedImageData!,
+          dreamId: savedDream.id,
+          userId: convexService.userId!,
+        );
+        // Refresh dreams to get updated image URLs
+        await dreamService.refreshDreams();
+      } catch (e) {
+        debugPrint('Error storing image: $e');
+        // Still show success for dream save, just mention image issue
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dream saved, but image storage failed. You can regenerate it later.'),
+            backgroundColor: AppColors.sunsetOrange,
+          ),
+        );
+      }
+    }
 
     setState(() {
       _isSaving = false;
@@ -474,7 +497,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     setState(() {
       _rawTranscript = '';
       _selectedType = DreamType.normal;
-      _generatedImagePath = null;
+      _generatedImageData = null;
     });
   }
 
@@ -482,11 +505,11 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     if (_contentController.text.trim().isEmpty) return;
 
     try {
-      final imagePath = await aiService.generateDreamImage(_contentController.text.trim());
+      final imageData = await aiService.generateDreamImageData(_contentController.text.trim());
       
-      if (imagePath != null) {
+      if (imageData != null) {
         setState(() {
-          _generatedImagePath = imagePath;
+          _generatedImageData = imageData;
         });
         
         ScaffoldMessenger.of(context).showSnackBar(

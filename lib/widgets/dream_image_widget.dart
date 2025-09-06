@@ -38,16 +38,26 @@ class DreamImageWidget extends StatelessWidget {
         borderRadius: borderRadius ?? BorderRadius.circular(16),
         child: Stack(
           children: [
-            // Main image
-            Image.file(
-              File(imagePath!),
-              height: height,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _buildErrorWidget();
-              },
-            ),
+            // Main image - handle both URLs and file paths
+            imagePath!.startsWith('http')
+                ? Image.network(
+                    imagePath!,
+                    height: height,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildErrorWidget();
+                    },
+                  )
+                : Image.file(
+                    File(imagePath!),
+                    height: height,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildErrorWidget();
+                    },
+                  ),
             // Gradient overlay
             Container(
               height: height,

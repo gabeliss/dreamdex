@@ -1,20 +1,20 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+import 'convex_service.dart';
 
 class AIService extends ChangeNotifier {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
   String? _apiKey;
   bool _isGeneratingImage = false;
   bool _isAnalyzing = false;
+  final ConvexService _convexService;
 
   bool get isGeneratingImage => _isGeneratingImage;
   bool get isAnalyzing => _isAnalyzing;
 
-  AIService() {
+  AIService(this._convexService) {
     _loadApiKey();
   }
 
@@ -33,7 +33,71 @@ class AIService extends ChangeNotifier {
     }
   }
 
-  Future<String?> generateDreamImage(String dreamDescription) async {
+  Future<String?> generateDreamImageData(String dreamDescription) async {
+    if (_apiKey == null) {
+      debugPrint('API key not found');
+      return null;
+    }
+
+    _isGeneratingImage = true;
+    notifyListeners();
+
+    try {
+      final prompt = _createImagePrompt(dreamDescription);
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/models/gemini-2.5-flash-image-preview:generateContent'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': _apiKey!,
+        },
+        body: jsonEncode({
+          'contents': [{
+            'parts': [
+              {'text': prompt}
+            ]
+          }]
+        }),
+      );
+
+      debugPrint('Image generation response: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['candidates'] != null && data['candidates'].isNotEmpty) {
+          final candidate = data['candidates'][0];
+          if (candidate['content'] != null && 
+              candidate['content']['parts'] != null &&
+              candidate['content']['parts'].isNotEmpty) {
+            
+            for (var part in candidate['content']['parts']) {
+              if (part['inlineData'] != null && part['inlineData']['data'] != null) {
+                final imageData = part['inlineData']['data'];
+                
+                _isGeneratingImage = false;
+                notifyListeners();
+                return imageData; // Return the base64 data
+              }
+            }
+          }
+        }
+        
+        debugPrint('No image data found in response');
+      } else {
+        debugPrint('Image generation failed: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Error generating dream image: $e');
+    }
+
+    _isGeneratingImage = false;
+    notifyListeners();
+    return null;
+  }
+
+  Future<String?> generateDreamImage(String dreamDescription, String dreamId, String userId) async {
     if (_apiKey == null) {
       debugPrint('API key not found');
       return null;
@@ -79,12 +143,12 @@ class AIService extends ChangeNotifier {
               if (part['inlineData'] != null && part['inlineData']['data'] != null) {
                 final imageData = part['inlineData']['data'];
                 
-                // Save image locally
-                final localPath = await _saveImageLocally(imageData);
+                // Store image in Convex storage
+                await _storeImageInConvex(imageData, dreamId, userId);
                 
                 _isGeneratingImage = false;
                 notifyListeners();
-                return localPath;
+                return 'success'; // Return success indicator instead of path
               }
             }
           }
@@ -117,22 +181,16 @@ Instructions:
 Avoid making every image look the same - let the dream content drive the visual style, colors, and composition.""";
   }
 
-  Future<String> _saveImageLocally(String base64Image) async {
+  Future<void> _storeImageInConvex(String base64Image, String dreamId, String userId) async {
     try {
-      final bytes = base64Decode(base64Image);
-      final directory = await getApplicationDocumentsDirectory();
-      final imagePath = '${directory.path}/dream_images';
-      
-      // Create directory if it doesn't exist
-      await Directory(imagePath).create(recursive: true);
-      
-      final fileName = 'dream_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File('$imagePath/$fileName');
-      
-      await file.writeAsBytes(bytes);
-      return file.path;
+      // Call Convex action to store the image
+      await _convexService.uploadImage(
+        base64Image: base64Image,
+        dreamId: dreamId,
+        userId: userId,
+      );
     } catch (e) {
-      debugPrint('Error saving image locally: $e');
+      debugPrint('Error storing image in Convex: $e');
       rethrow;
     }
   }

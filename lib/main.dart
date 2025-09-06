@@ -77,7 +77,12 @@ class DreamdexApp extends StatelessWidget {
             },
           ),
           ChangeNotifierProvider(create: (_) => SpeechService()),
-          ChangeNotifierProvider(create: (_) => AIService()),
+          ChangeNotifierProxyProvider<ConvexService, AIService>(
+            create: (context) => AIService(context.read<ConvexService>()),
+            update: (context, convexService, previous) {
+              return previous ?? AIService(convexService);
+            },
+          ),
         ],
         child: MaterialApp(
           title: 'Dreamdex',

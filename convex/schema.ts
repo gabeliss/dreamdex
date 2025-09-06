@@ -8,7 +8,7 @@ export default defineSchema({
     content: v.string(),
     rawTranscript: v.string(),
     type: v.string(), // DreamType enum as string
-    aiGeneratedImageUrl: v.optional(v.string()),
+    aiGeneratedImageStorageId: v.optional(v.id("_storage")),
     aiImagePrompt: v.optional(v.string()),
     isGeneratingImage: v.optional(v.boolean()),
     tags: v.array(v.string()),

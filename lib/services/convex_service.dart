@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -44,7 +45,7 @@ class ConvexService extends ChangeNotifier {
       final response = await _dio.post(
         '$_convexUrl/api/query',
         data: {
-          'path': 'dreams:list',
+          'path': 'dreams:listWithImageUrls',
           'args': {'userId': _userId},
         },
       );
@@ -340,6 +341,98 @@ class ConvexService extends ChangeNotifier {
     }
 
     debugPrint('=== END CONVEX UPSERT ===');
+    return null;
+  }
+
+  // Upload image to Convex storage using proper upload flow
+  Future<String?> uploadImage({
+    required String base64Image,
+    required String dreamId,
+    required String userId,
+  }) async {
+    if (!_isInitialized) {
+      return null;
+    }
+
+    try {
+      debugPrint('=== CONVEX UPLOAD IMAGE ===');
+      debugPrint('Dream ID: $dreamId');
+      debugPrint('User ID: $userId');
+      debugPrint('Base64 length: ${base64Image.length}');
+      
+      // Step 1: Get upload URL
+      final uploadUrlResponse = await _dio.post(
+        '$_convexUrl/api/mutation',
+        data: {
+          'path': 'dreams:generateUploadUrl',
+          'args': {},
+        },
+      );
+
+      if (uploadUrlResponse.statusCode != 200) {
+        debugPrint('❌ Failed to generate upload URL');
+        return null;
+      }
+
+      String uploadUrl;
+      if (uploadUrlResponse.data is Map<String, dynamic> && 
+          uploadUrlResponse.data['status'] == 'success') {
+        uploadUrl = uploadUrlResponse.data['value'];
+      } else {
+        uploadUrl = uploadUrlResponse.data.toString();
+      }
+      
+      debugPrint('✅ Got upload URL: $uploadUrl');
+
+      // Step 2: Convert base64 to bytes
+      final base64Data = base64Image.replaceAll(RegExp(r'^data:image\/[a-z]+;base64,'), '');
+      final bytes = base64Decode(base64Data);
+      
+      debugPrint('Converted to bytes, length: ${bytes.length}');
+
+      // Step 3: Upload file directly to Convex storage
+      final uploadResponse = await _dio.post(
+        uploadUrl,
+        data: bytes,
+        options: Options(
+          headers: {
+            'Content-Type': 'image/png',
+          },
+        ),
+      );
+
+      if (uploadResponse.statusCode != 200) {
+        debugPrint('❌ Failed to upload image');
+        return null;
+      }
+
+      final storageId = uploadResponse.data['storageId'];
+      debugPrint('✅ Image uploaded, storage ID: $storageId');
+
+      // Step 4: Update dream with storage ID
+      final updateResponse = await _dio.post(
+        '$_convexUrl/api/mutation',
+        data: {
+          'path': 'dreams:updateDreamWithImage',
+          'args': {
+            'dreamId': dreamId,
+            'userId': userId,
+            'storageId': storageId,
+          },
+        },
+      );
+
+      if (updateResponse.statusCode == 200) {
+        debugPrint('✅ Dream updated with image storage ID');
+        return storageId;
+      } else {
+        debugPrint('❌ Failed to update dream with image');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error uploading image to Convex: $e');
+    }
+
     return null;
   }
 

@@ -146,7 +146,7 @@ export const getStats = query({
     const thisWeek = dreams.filter(dream => dream._creationTime > weekAgo);
     const thisMonth = dreams.filter(dream => dream._creationTime > monthAgo);
     const favorites = dreams.filter(dream => dream.isFavorite);
-    const withImages = dreams.filter(dream => dream.aiGeneratedImageUrl);
+    const withImages = dreams.filter(dream => dream.aiGeneratedImageStorageId);
     const withAnalysis = dreams.filter(dream => dream.analysis);
 
     return {
