@@ -22,6 +22,30 @@ enum EmotionType {
   nostalgia,
 }
 
+class DreamSymbol {
+  final String symbol;
+  final String meaning;
+
+  DreamSymbol({
+    required this.symbol,
+    required this.meaning,
+  });
+
+  factory DreamSymbol.fromJson(Map<String, dynamic> json) {
+    return DreamSymbol(
+      symbol: json['symbol'] ?? '',
+      meaning: json['meaning'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'symbol': symbol,
+      'meaning': meaning,
+    };
+  }
+}
+
 class DreamAnalysis {
   final List<String> themes;
   final List<String> characters;
@@ -30,6 +54,10 @@ class DreamAnalysis {
   final String summary;
   final double lucidityScore;
   final double emotionalIntensity;
+  final String interpretation;
+  final String personalReflection;
+  final List<DreamSymbol> symbolism;
+  final List<String> possibleMeanings;
 
   DreamAnalysis({
     required this.themes,
@@ -39,6 +67,10 @@ class DreamAnalysis {
     required this.summary,
     required this.lucidityScore,
     required this.emotionalIntensity,
+    required this.interpretation,
+    required this.personalReflection,
+    required this.symbolism,
+    required this.possibleMeanings,
   });
 
   factory DreamAnalysis.fromJson(Map<String, dynamic> json) {
@@ -56,6 +88,13 @@ class DreamAnalysis {
       summary: json['summary'] ?? '',
       lucidityScore: (json['lucidityScore'] ?? 0.0).toDouble(),
       emotionalIntensity: (json['emotionalIntensity'] ?? 0.0).toDouble(),
+      interpretation: json['interpretation'] ?? '',
+      personalReflection: json['personalReflection'] ?? '',
+      symbolism: (json['symbolism'] as List<dynamic>?)
+              ?.map((s) => DreamSymbol.fromJson(s))
+              .toList() ??
+          [],
+      possibleMeanings: List<String>.from(json['possibleMeanings'] ?? []),
     );
   }
 
@@ -68,6 +107,10 @@ class DreamAnalysis {
       'summary': summary,
       'lucidityScore': lucidityScore,
       'emotionalIntensity': emotionalIntensity,
+      'interpretation': interpretation,
+      'personalReflection': personalReflection,
+      'symbolism': symbolism.map((s) => s.toJson()).toList(),
+      'possibleMeanings': possibleMeanings,
     };
   }
 }
@@ -76,7 +119,6 @@ class Dream {
   final String id;
   final String title;
   final String content;
-  final String rawTranscript;
   final DateTime createdAt;
   final DreamType type;
   final DreamAnalysis? analysis;
@@ -90,7 +132,6 @@ class Dream {
     String? id,
     required this.title,
     required this.content,
-    required this.rawTranscript,
     DateTime? createdAt,
     this.type = DreamType.normal,
     this.analysis,
@@ -105,7 +146,6 @@ class Dream {
   Dream copyWith({
     String? title,
     String? content,
-    String? rawTranscript,
     DreamType? type,
     DreamAnalysis? analysis,
     String? aiGeneratedImageUrl,
@@ -118,7 +158,6 @@ class Dream {
       id: id,
       title: title ?? this.title,
       content: content ?? this.content,
-      rawTranscript: rawTranscript ?? this.rawTranscript,
       createdAt: createdAt,
       type: type ?? this.type,
       analysis: analysis ?? this.analysis,
@@ -135,7 +174,6 @@ class Dream {
       id: json['_id'] ?? json['id'], // Handle Convex _id format
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      rawTranscript: json['rawTranscript'] ?? '',
       createdAt: json['_creationTime'] != null 
           ? DateTime.fromMillisecondsSinceEpoch(json['_creationTime'].toInt())
           : (json['createdAt'] != null 
@@ -161,7 +199,6 @@ class Dream {
       'id': id,
       'title': title,
       'content': content,
-      'rawTranscript': rawTranscript,
       'createdAt': createdAt.toIso8601String(),
       'type': type.name,
       'analysis': analysis?.toJson(),

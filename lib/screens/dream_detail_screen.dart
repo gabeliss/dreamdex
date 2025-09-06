@@ -22,13 +22,12 @@ class DreamDetailScreen extends StatefulWidget {
 class _DreamDetailScreenState extends State<DreamDetailScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  bool _showRawTranscript = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: widget.dream.analysis != null ? 3 : 2,
+      length: 2,
       vsync: this,
     );
   }
@@ -54,8 +53,7 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
                     controller: _tabController,
                     children: [
                       _buildDreamTab(),
-                      _buildRawTranscriptTab(),
-                      if (widget.dream.analysis != null) _buildAnalysisTab(),
+                      _buildAnalysisTab(),
                     ],
                   ),
                 ),
@@ -143,8 +141,7 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
         labelStyle: const TextStyle(fontWeight: FontWeight.w600),
         tabs: [
           const Tab(text: 'Dream'),
-          const Tab(text: 'Transcript'),
-          if (widget.dream.analysis != null) const Tab(text: 'Analysis'),
+          const Tab(text: 'Analysis'),
         ],
       ),
     ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideY(begin: -0.1);
@@ -218,77 +215,36 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
     ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
   }
 
-  Widget _buildRawTranscriptTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildAnalysisTab() {
+    final analysis = widget.dream.analysis;
+    
+    if (analysis == null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.mic,
+              const SizedBox(height: 100),
+              CircularProgressIndicator(
                 color: AppColors.primaryPurple,
-                size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 24),
               Text(
-                'Voice Recording Transcript',
+                'Analyzing your dream...',
                 style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Our AI is studying your dream content to provide insights',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (widget.dream.rawTranscript.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.fogGrey,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                widget.dream.rawTranscript,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  height: 1.6,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ] else ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(40),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.mic_off,
-                    size: 48,
-                    color: AppColors.shadowGrey,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No voice transcript available',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'This dream was entered manually',
-                    style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
-  }
-
-  Widget _buildAnalysisTab() {
-    final analysis = widget.dream.analysis!;
+        ),
+      ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
+    }
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -297,6 +253,18 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
         children: [
           _buildAnalysisSection('Summary', analysis.summary, Icons.summarize),
           const SizedBox(height: 24),
+          _buildAnalysisSection('Interpretation', analysis.interpretation, Icons.psychology),
+          const SizedBox(height: 24),
+          _buildAnalysisSection('Personal Reflection', analysis.personalReflection, Icons.self_improvement),
+          const SizedBox(height: 24),
+          if (analysis.symbolism.isNotEmpty) ...[
+            _buildSymbolismSection(analysis.symbolism),
+            const SizedBox(height: 24),
+          ],
+          if (analysis.possibleMeanings.isNotEmpty) ...[
+            _buildPossibleMeaningsSection(analysis.possibleMeanings),
+            const SizedBox(height: 24),
+          ],
           _buildAnalysisSection('Themes', analysis.themes.join(', '), Icons.category),
           const SizedBox(height: 24),
           _buildAnalysisSection('Characters', analysis.characters.join(', '), Icons.people),
@@ -590,5 +558,100 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
 
   String _formatEmotion(EmotionType emotion) {
     return emotion.name.substring(0, 1).toUpperCase() + emotion.name.substring(1);
+  }
+
+  Widget _buildSymbolismSection(List<DreamSymbol> symbolism) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.primaryPurple, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Symbolism',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...symbolism.map((symbol) => Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.ultraLightPurple,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.lightPurple),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                symbol.symbol,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryPurple,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                symbol.meaning,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        )).toList(),
+      ],
+    );
+  }
+
+  Widget _buildPossibleMeaningsSection(List<String> meanings) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.lightbulb_outline, color: AppColors.primaryPurple, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Possible Meanings',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...meanings.map((meaning) => Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.ultraLightPurple,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.lightPurple),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                margin: const EdgeInsets.only(top: 8, right: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryPurple,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  meaning,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        )).toList(),
+      ],
+    );
   }
 }

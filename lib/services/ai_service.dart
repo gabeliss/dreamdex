@@ -248,29 +248,46 @@ Avoid making every image look the same - let the dream content drive the visual 
   }
 
   String _createAnalysisPrompt(String dreamContent) {
-    return """Analyze this dream and provide a structured response in JSON format:
+    return """Analyze this dream as a professional dream analyst and provide a comprehensive psychological interpretation in JSON format:
 
 Dream: "$dreamContent"
 
 Please analyze and return ONLY a valid JSON object with this exact structure:
 {
-  "summary": "A brief 2-3 sentence summary of the dream",
+  "summary": "A brief 2-3 sentence summary of the dream narrative",
   "themes": ["theme1", "theme2", "theme3"],
   "characters": ["character1", "character2"],
   "locations": ["location1", "location2"],
   "emotions": ["joy", "fear", "love", "anxiety", "peace"],
   "lucidityScore": 0.5,
-  "emotionalIntensity": 0.7
+  "emotionalIntensity": 0.7,
+  "interpretation": "A detailed psychological interpretation of what this dream might represent in the dreamer's waking life, including potential subconscious messages, unresolved issues, or life transitions it may reflect. Consider common dream psychology theories.",
+  "personalReflection": "Thoughtful questions and prompts to help the dreamer reflect on how this dream might connect to their current life situation, relationships, goals, or inner emotional state.",
+  "symbolism": [
+    {"symbol": "flying", "meaning": "desire for freedom or escape from limitations"},
+    {"symbol": "water", "meaning": "emotions, subconscious mind, or life transitions"}
+  ],
+  "possibleMeanings": [
+    "The dream may reflect feelings of being overwhelmed in your current situation",
+    "It could represent a desire for more control or freedom in your life",
+    "This might symbolize upcoming changes or transitions you're anticipating"
+  ]
 }
 
-Guidelines:
+Analysis Guidelines:
 - summary: Concise overview of the main dream narrative
 - themes: Major concepts, symbols, or recurring elements (max 5)
-- characters: People, animals, or entities present (max 5)
+- characters: People, animals, or entities present (max 5)  
 - locations: Settings, places, or environments (max 5)
 - emotions: Primary emotional tones (use: joy, fear, sadness, anger, love, anxiety, peace, confusion, excitement, nostalgia)
 - lucidityScore: How aware/in-control the dreamer seemed (0.0-1.0)
 - emotionalIntensity: Overall emotional impact (0.0-1.0)
+- interpretation: 2-3 paragraphs of professional dream analysis connecting symbols to psychology
+- personalReflection: Helpful questions to guide self-reflection (2-3 sentences)
+- symbolism: Key symbols and their psychological meanings (max 5)
+- possibleMeanings: 2-4 potential interpretations of the dream's significance
+
+Focus on being insightful, compassionate, and psychologically informed. Draw from Jungian, Freudian, and modern dream analysis approaches. Make connections to common life themes like relationships, career, personal growth, fears, and aspirations.
 
 Return only the JSON object, no additional text or formatting.""";
   }
@@ -302,6 +319,10 @@ Return only the JSON object, no additional text or formatting.""";
       'emotions': <String>[],
       'lucidityScore': 0.0,
       'emotionalIntensity': 0.0,
+      'interpretation': 'Unable to provide interpretation at this time.',
+      'personalReflection': 'Please reflect on what this dream might mean to you personally.',
+      'symbolism': <Map<String, dynamic>>[],
+      'possibleMeanings': <String>[],
     };
   }
 

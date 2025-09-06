@@ -27,7 +27,6 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   DreamType _selectedType = DreamType.normal;
   bool _isRecording = false;
   bool _isSaving = false;
-  String _rawTranscript = '';
   String? _generatedImageData; // Store base64 image data temporarily
   late AnimationController _pulseController;
   late AnimationController _waveController;
@@ -402,7 +401,6 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       await speechService.stopListening();
       setState(() {
         _isRecording = false;
-        _rawTranscript = speechService.transcribedText;
         _contentController.text = speechService.transcribedText;
       });
       _pulseController.stop();
@@ -413,7 +411,6 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           onResult: (text) {
             setState(() {
               _contentController.text = text;
-              _rawTranscript = text;
             });
           },
         );
@@ -452,7 +449,6 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     final dream = Dream(
       title: _titleController.text.trim(),
       content: _contentController.text.trim(),
-      rawTranscript: _rawTranscript,
       type: _selectedType,
     );
 
@@ -481,6 +477,26 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       }
     }
 
+    // Automatically analyze the dream content
+    if (savedDream != null) {
+      try {
+        final aiService = Provider.of<AIService>(context, listen: false);
+        final analysisData = await aiService.analyzeDream(_contentController.text.trim());
+        
+        if (analysisData != null) {
+          debugPrint('✅ AI analysis received: ${analysisData.keys}');
+          // Update the dream with analysis results
+          await dreamService.updateDreamAnalysis(savedDream.id, analysisData);
+          debugPrint('✅ Dream analysis saved to database successfully');
+        } else {
+          debugPrint('❌ Dream analysis failed - no data returned');
+        }
+      } catch (e) {
+        debugPrint('Error during dream analysis: $e');
+        // Analysis failure shouldn't prevent dream saving success
+      }
+    }
+
     setState(() {
       _isSaving = false;
     });
@@ -495,7 +511,6 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     _titleController.clear();
     _contentController.clear();
     setState(() {
-      _rawTranscript = '';
       _selectedType = DreamType.normal;
       _generatedImageData = null;
     });

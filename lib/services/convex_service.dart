@@ -183,6 +183,53 @@ class ConvexService extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateDreamAnalysis(String dreamId, Map<String, dynamic> analysisData) async {
+    debugPrint('=== CONVEX UPDATE DREAM ANALYSIS ===');
+    debugPrint('Dream ID: $dreamId');
+    debugPrint('User ID: $_userId');
+    debugPrint('Analysis data keys: ${analysisData.keys}');
+    debugPrint('Analysis data: ${analysisData.toString().substring(0, 200)}...');
+    
+    if (!_isInitialized || _userId == null) {
+      debugPrint('❌ ConvexService not initialized or userId null');
+      return false;
+    }
+
+    try {
+      final payload = {
+        'path': 'dreams:update',
+        'args': {
+          'id': dreamId,
+          'userId': _userId,
+          'updates': {
+            'analysis': analysisData,
+          },
+        },
+      };
+      
+      debugPrint('Update payload: $payload');
+      
+      final response = await _dio.post(
+        '$_convexUrl/api/mutation',
+        data: payload,
+      );
+
+      debugPrint('Update response status: ${response.statusCode}');
+      debugPrint('Update response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        debugPrint('✅ Dream analysis update successful');
+        return true;
+      } else {
+        debugPrint('❌ Dream analysis update failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating dream analysis in Convex: $e');
+      return false;
+    }
+  }
+
   Future<bool> deleteDream(String dreamId) async {
     if (!_isInitialized || _userId == null) {
       return false;

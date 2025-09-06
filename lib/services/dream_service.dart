@@ -52,7 +52,6 @@ class DreamService extends ChangeNotifier {
           id: dreamId,
           title: dream.title,
           content: dream.content,
-          rawTranscript: dream.rawTranscript,
           createdAt: dream.createdAt,
           type: dream.type,
           analysis: dream.analysis,
@@ -104,6 +103,26 @@ class DreamService extends ChangeNotifier {
     final dream = _dreams.firstWhere((d) => d.id == dreamId);
     final updatedDream = dream.copyWith(isFavorite: !dream.isFavorite);
     await updateDream(updatedDream);
+  }
+
+  Future<void> updateDreamAnalysis(String dreamId, Map<String, dynamic> analysisData) async {
+    try {
+      final success = await _convexService.updateDreamAnalysis(dreamId, analysisData);
+      if (success) {
+        // Find the dream and update it locally
+        final index = _dreams.indexWhere((d) => d.id == dreamId);
+        if (index != -1) {
+          final dream = _dreams[index];
+          final analysis = DreamAnalysis.fromJson(analysisData);
+          final updatedDream = dream.copyWith(analysis: analysis);
+          _dreams[index] = updatedDream;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating dream analysis: $e');
+      rethrow;
+    }
   }
 
   List<Dream> searchDreams(String query) {

@@ -6,7 +6,6 @@ export default defineSchema({
     userId: v.string(),
     title: v.string(),
     content: v.string(),
-    rawTranscript: v.string(),
     type: v.string(), // DreamType enum as string
     aiGeneratedImageStorageId: v.optional(v.id("_storage")),
     aiImagePrompt: v.optional(v.string()),
@@ -23,6 +22,13 @@ export default defineSchema({
       summary: v.string(),
       lucidityScore: v.number(),
       emotionalIntensity: v.number(),
+      interpretation: v.string(),
+      personalReflection: v.string(),
+      symbolism: v.array(v.object({
+        symbol: v.string(),
+        meaning: v.string(),
+      })),
+      possibleMeanings: v.array(v.string()),
     })),
   })
     .index("by_user", ["userId"])
