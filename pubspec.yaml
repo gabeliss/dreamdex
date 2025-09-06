@@ -28,6 +28,7 @@ dependencies:
   convex_flutter: ^1.2.0
   clerk_flutter: ^0.0.3
   dio: ^5.3.2
+  url_launcher: ^6.2.1
 
 dev_dependencies:
   flutter_test:

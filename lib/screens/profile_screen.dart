@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:provider/provider.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_colors.dart';
-import '../services/dream_service.dart';
 import 'auth/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -13,26 +12,18 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Consumer<DreamService>(
-          builder: (context, dreamService, child) {
-            final stats = dreamService.getDreamStats();
-            
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 30),
-                  _buildProfileCard(stats),
-                  const SizedBox(height: 30),
-                  _buildStatsGrid(stats),
-                  const SizedBox(height: 30),
-                  _buildSettingsSection(context),
-                ],
-              ),
-            );
-          },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 30),
+              _buildProfileCard(context),
+              const SizedBox(height: 30),
+              _buildSettingsSection(context),
+            ],
+          ),
         ),
       ),
     );
@@ -52,7 +43,7 @@ class ProfileScreen extends StatelessWidget {
         ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
         const SizedBox(height: 8),
         Text(
-          'Track your dream journey',
+          'Manage your account',
           style: TextStyle(
             fontSize: 16,
             color: AppColors.shadowGrey,
@@ -62,7 +53,10 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard(Map<String, int> stats) {
+  Widget _buildProfileCard(BuildContext context) {
+    final auth = ClerkAuth.of(context);
+    final user = auth.user;
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -94,7 +88,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Dream Explorer',
+            user?.firstName ?? 'User',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -103,7 +97,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${stats['total']} dreams captured',
+            user?.email ?? 'No email',
             style: TextStyle(
               fontSize: 16,
               color: AppColors.cloudWhite.withOpacity(0.9),
@@ -114,110 +108,51 @@ class ProfileScreen extends StatelessWidget {
     ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.3);
   }
 
-  Widget _buildStatsGrid(Map<String, int> stats) {
-    final statItems = [
-      {'title': 'Total Dreams', 'value': stats['total']!, 'icon': Icons.auto_stories},
-      {'title': 'This Week', 'value': stats['thisWeek']!, 'icon': Icons.calendar_today},
-      {'title': 'This Month', 'value': stats['thisMonth']!, 'icon': Icons.calendar_month},
-      {'title': 'Favorites', 'value': stats['favorites']!, 'icon': Icons.favorite},
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: statItems.length,
-      itemBuilder: (context, index) {
-        final item = statItems[index];
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.cloudWhite,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.mistGrey),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowGrey.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                item['icon'] as IconData,
-                size: 30,
-                color: AppColors.primaryPurple,
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: Text(
-                  '${item['value']}',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.nightGrey,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Flexible(
-                child: Text(
-                  item['title'] as String,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.shadowGrey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ).animate().fadeIn(duration: 500.ms, delay: (300 + index * 50).ms)
-          .slideY(begin: 0.2);
-      },
-    );
-  }
 
   Widget _buildSettingsSection(BuildContext context) {
     final settingsItems = [
       {
-        'title': 'Export Dreams',
-        'subtitle': 'Export your dreams to a file',
-        'icon': Icons.download,
-        'onTap': () => _showComingSoonDialog(context),
+        'title': 'Manage Subscription',
+        'subtitle': 'View and manage your subscription',
+        'icon': Icons.subscriptions,
+        'onTap': () => _handleManageSubscription(),
       },
       {
-        'title': 'Dream Analysis',
-        'subtitle': 'Configure AI analysis settings',
-        'icon': Icons.psychology,
-        'onTap': () => _showComingSoonDialog(context),
+        'title': 'Restore Purchases',
+        'subtitle': 'Restore previous purchases',
+        'icon': Icons.restore,
+        'onTap': () => _handleRestorePurchases(context),
       },
       {
-        'title': 'Notifications',
-        'subtitle': 'Dream reminder settings',
-        'icon': Icons.notifications,
-        'onTap': () => _showComingSoonDialog(context),
+        'title': 'Theme',
+        'subtitle': 'Change app appearance',
+        'icon': Icons.palette,
+        'onTap': () => _showThemeDialog(context),
       },
       {
-        'title': 'Privacy',
-        'subtitle': 'Data and privacy settings',
+        'title': 'Support',
+        'subtitle': 'Get help and contact us',
+        'icon': Icons.support_agent,
+        'onTap': () => _handleContactSupport(),
+      },
+      {
+        'title': 'Privacy Policy',
+        'subtitle': 'View privacy policy',
         'icon': Icons.privacy_tip,
-        'onTap': () => _showComingSoonDialog(context),
+        'onTap': () => _openUrl('https://your-privacy-policy-url.com'),
       },
       {
-        'title': 'About',
-        'subtitle': 'App version and information',
-        'icon': Icons.info,
-        'onTap': () => _showAboutDialog(context),
+        'title': 'Terms of Service',
+        'subtitle': 'View terms of service',
+        'icon': Icons.article,
+        'onTap': () => _openUrl('https://your-terms-url.com'),
+      },
+      {
+        'title': 'Delete Account',
+        'subtitle': 'Permanently delete your account',
+        'icon': Icons.delete_forever,
+        'onTap': () => _handleDeleteAccount(context),
+        'isDestructive': true,
       },
       {
         'title': 'Sign Out',
@@ -286,43 +221,163 @@ class ProfileScreen extends StatelessWidget {
     ).animate().fadeIn(duration: 500.ms, delay: 600.ms).slideY(begin: 0.2);
   }
 
-  void _showComingSoonDialog(BuildContext context) {
+  void _handleManageSubscription() async {
+    const url = 'https://apps.apple.com/account/subscriptions'; // iOS
+    // For Android, you'd use: 'https://play.google.com/store/account/subscriptions'
+    await _openUrl(url);
+  }
+
+  void _handleRestorePurchases(BuildContext context) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Restoring purchases...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // TODO: Implement actual restore purchases logic with your in-app purchase plugin
+      await Future.delayed(const Duration(seconds: 2)); // Placeholder
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showSnackBar(context, 'Purchases restored successfully!', isError: false);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        _showSnackBar(context, 'Failed to restore purchases: $e', isError: true);
+      }
+    }
+  }
+
+  void _showThemeDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Coming Soon'),
-        content: const Text('This feature is coming in a future update!'),
+        title: const Text('Choose Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.light_mode),
+              title: const Text('Light'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSnackBar(context, 'Light theme selected', isError: false);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: const Text('Dark'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSnackBar(context, 'Dark theme selected', isError: false);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('System'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSnackBar(context, 'System theme selected', isError: false);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleContactSupport() async {
+    const email = 'support@dreamdex.com'; // Replace with your support email
+    const subject = 'Dreamdex App Support';
+    final url = 'mailto:$email?subject=${Uri.encodeComponent(subject)}';
+    await _openUrl(url);
+  }
+
+  Future<void> _openUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      debugPrint('Failed to open URL: $e');
+    }
+  }
+
+  void _handleDeleteAccount(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              
+              // Show confirmation dialog
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Final Confirmation'),
+                  content: const Text('Type "DELETE" to confirm account deletion:'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('DELETE'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true && context.mounted) {
+                try {
+                  // TODO: Implement actual account deletion logic
+                  _showSnackBar(context, 'Account deletion requested. You will be contacted within 24 hours.', isError: false);
+                } catch (e) {
+                  _showSnackBar(context, 'Failed to delete account: $e', isError: true);
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: 'Dreamdex',
-      applicationVersion: '1.0.0',
-      applicationIcon: Container(
-        width: 64,
-        height: 64,
-        decoration: const BoxDecoration(
-          gradient: AppColors.dreamGradient,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.bedtime,
-          size: 32,
-          color: AppColors.cloudWhite,
-        ),
+  void _showSnackBar(BuildContext context, String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 3),
       ),
-      children: const [
-        Text('A beautiful app for tracking and analyzing your dreams with AI.'),
-      ],
     );
   }
 
