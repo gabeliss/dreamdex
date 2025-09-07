@@ -1,5 +1,11 @@
 # CLAUDE.md
 
+# CRITICAL REMINDER - PROJECT NAME AND BUNDLE ID
+# PROJECT NAME: dreamdex (NOT dreamdx!!!)
+# DIRECTORY: /Users/gabeliss/Desktop/dreamdex/
+# BUNDLE ID: com.example.dreamdex (NOT dreamdx!!!)
+# NEVER use "dreamdx" - it is ALWAYS "dreamdex"
+
 # IMPORTANT - the root directory is dreamdex, not dreamdx. Use dreamdex in your commands when reading/updating files.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.

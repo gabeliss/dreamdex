@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
+import '../services/subscription_service.dart';
+import '../widgets/paywall_dialog.dart';
 import 'auth/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -57,7 +60,9 @@ class ProfileScreen extends StatelessWidget {
     final auth = ClerkAuth.of(context);
     final user = auth.user;
     
-    return Container(
+    return Consumer<SubscriptionService>(
+      builder: (context, subscriptionService, child) {
+        return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -103,25 +108,67 @@ class ProfileScreen extends StatelessWidget {
               color: AppColors.cloudWhite.withOpacity(0.9),
             ),
           ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: subscriptionService.isPremium 
+                  ? Colors.green.withOpacity(0.2)
+                  : Colors.orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: subscriptionService.isPremium 
+                    ? Colors.green
+                    : Colors.orange,
+                width: 1,
+              ),
+            ),
+            child: Text(
+              subscriptionService.isPremium ? 'Premium User' : 'Free User',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: subscriptionService.isPremium 
+                    ? Colors.green
+                    : Colors.orange,
+              ),
+            ),
+          ),
         ],
       ),
+    );
+      },
     ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.3);
   }
 
 
   Widget _buildSettingsSection(BuildContext context) {
-    final settingsItems = [
+    return Consumer<SubscriptionService>(
+      builder: (context, subscriptionService, child) {
+        final settingsItems = [
+          if (!subscriptionService.isPremium)
+            {
+              'title': 'Upgrade to Premium',
+              'subtitle': 'Unlock all features',
+              'icon': Icons.star,
+              'onTap': () => _handleUpgradeToPremium(context),
+              'isPremium': true,
+            },
       {
-        'title': 'Manage Subscription',
-        'subtitle': 'View and manage your subscription',
+        'title': subscriptionService.isPremium ? 'Manage Subscription' : 'View Subscription Plans',
+        'subtitle': subscriptionService.isPremium 
+            ? 'View and manage your subscription' 
+            : 'See available premium plans',
         'icon': Icons.subscriptions,
-        'onTap': () => _handleManageSubscription(),
+        'onTap': () => subscriptionService.isPremium 
+            ? _handleManageSubscription() 
+            : _handleUpgradeToPremium(context),
       },
       {
         'title': 'Restore Purchases',
         'subtitle': 'Restore previous purchases',
         'icon': Icons.restore,
-        'onTap': () => _handleRestorePurchases(context),
+        'onTap': () => _handleRestorePurchases(context, subscriptionService),
       },
       {
         'title': 'Theme',
@@ -163,7 +210,7 @@ class ProfileScreen extends StatelessWidget {
       },
     ];
 
-    return Column(
+        return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -177,18 +224,27 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 16),
         ...settingsItems.map((item) {
           final isDestructive = item['isDestructive'] == true;
+          final isPremium = item['isPremium'] == true;
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDestructive ? Colors.red.withOpacity(0.1) : AppColors.ultraLightPurple,
+                  color: isDestructive 
+                      ? Colors.red.withOpacity(0.1) 
+                      : isPremium 
+                          ? Colors.amber.withOpacity(0.1)
+                          : AppColors.ultraLightPurple,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   item['icon'] as IconData,
-                  color: isDestructive ? Colors.red : AppColors.primaryPurple,
+                  color: isDestructive 
+                      ? Colors.red 
+                      : isPremium 
+                          ? Colors.amber[700]
+                          : AppColors.primaryPurple,
                   size: 20,
                 ),
               ),
@@ -196,7 +252,11 @@ class ProfileScreen extends StatelessWidget {
                 item['title'] as String,
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: isDestructive ? Colors.red : null,
+                  color: isDestructive 
+                      ? Colors.red 
+                      : isPremium 
+                          ? Colors.amber[700]
+                          : null,
                 ),
               ),
               subtitle: Text(
@@ -205,11 +265,27 @@ class ProfileScreen extends StatelessWidget {
                   color: isDestructive ? Colors.red.withOpacity(0.7) : null,
                 ),
               ),
-              trailing: Icon(
-                Icons.arrow_forward_ios, 
-                size: 16,
-                color: isDestructive ? Colors.red : null,
-              ),
+              trailing: isPremium 
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.amber[700],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'NEW',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      Icons.arrow_forward_ios, 
+                      size: 16,
+                      color: isDestructive ? Colors.red : null,
+                    ),
               onTap: item['onTap'] as VoidCallback,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -217,7 +293,9 @@ class ProfileScreen extends StatelessWidget {
             ),
           );
         }).toList(),
-      ],
+        ],
+      );
+      },
     ).animate().fadeIn(duration: 500.ms, delay: 600.ms).slideY(begin: 0.2);
   }
 
@@ -227,7 +305,11 @@ class ProfileScreen extends StatelessWidget {
     await _openUrl(url);
   }
 
-  void _handleRestorePurchases(BuildContext context) async {
+  void _handleUpgradeToPremium(BuildContext context) async {
+    await showPaywall(context, PremiumFeature.unlimitedDreams);
+  }
+
+  void _handleRestorePurchases(BuildContext context, SubscriptionService subscriptionService) async {
     // Show loading indicator
     showDialog(
       context: context,
@@ -244,17 +326,20 @@ class ProfileScreen extends StatelessWidget {
     );
 
     try {
-      // TODO: Implement actual restore purchases logic with your in-app purchase plugin
-      await Future.delayed(const Duration(seconds: 2)); // Placeholder
+      final success = await subscriptionService.restorePurchases();
       
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
-        _showSnackBar(context, 'Purchases restored successfully!', isError: false);
+        if (success) {
+          _showSnackBar(context, 'Purchases restored successfully!', isError: false);
+        } else {
+          _showSnackBar(context, 'No purchases found to restore', isError: false);
+        }
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
-        _showSnackBar(context, 'Failed to restore purchases: $e', isError: true);
+        _showSnackBar(context, 'Failed to restore purchases: ${subscriptionService.errorMessage ?? e.toString()}', isError: true);
       }
     }
   }
@@ -397,6 +482,10 @@ class ProfileScreen extends StatelessWidget {
               Navigator.pop(context); // Close dialog
               
               try {
+                // Clear subscription service data
+                final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+                await subscriptionService.clearUserId();
+                
                 final auth = ClerkAuth.of(context);
                 await auth.signOut();
                 

@@ -11,15 +11,37 @@ import 'services/speech_service.dart';
 import 'services/ai_service.dart';
 import 'services/auth_service.dart';
 import 'services/convex_service.dart';
+import 'services/subscription_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: ".env.local");
   } catch (e) {
-    print("Error loading .env file: $e");
+    print("Error loading .env.local file: $e");
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e2) {
+      print("Error loading .env file: $e2");
+    }
+  }
+  
+  // Initialize RevenueCat
+  final revenueCatApiKey = dotenv.env['REVENUECAT_API_KEY'];
+  if (revenueCatApiKey != null && revenueCatApiKey.isNotEmpty) {
+    try {
+      await SubscriptionService.initialize(
+        apiKey: revenueCatApiKey,
+        enableDebugLogs: true, // Set to false in production
+      );
+      print("RevenueCat initialized successfully");
+    } catch (e) {
+      print("RevenueCat initialization failed: $e");
+    }
+  } else {
+    print("RevenueCat API key not found in .env file");
   }
   
   SystemChrome.setSystemUIOverlayStyle(
@@ -67,6 +89,7 @@ class DreamdexApp extends StatelessWidget {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ConvexService()),
+          ChangeNotifierProvider(create: (_) => SubscriptionService()),
           ChangeNotifierProxyProvider<ConvexService, DreamService>(
             create: (context) => DreamService(
               context.read<ConvexService>(),
@@ -111,13 +134,21 @@ class _AuthGateState extends State<AuthGate> {
         debugPrint('User: ${authState.user}');
         debugPrint('Sessions: ${authState.client?.sessions?.length ?? 0}');
         
-        // Set userId in ConvexService for existing authenticated users
+        // Set userId in ConvexService and SubscriptionService for existing authenticated users
         if (authState.user != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final convexService = Provider.of<ConvexService>(context, listen: false);
             final dreamService = Provider.of<DreamService>(context, listen: false);
+            final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+            
             convexService.setUserId(authState.user!.id);
             debugPrint('Set userId in ConvexService: ${authState.user!.id}');
+            
+            // Initialize and set user in subscription service
+            subscriptionService.initializeService().then((_) {
+              subscriptionService.setUserId(authState.user!.id);
+              debugPrint('Initialized subscription service for user: ${authState.user!.id}');
+            });
             
             // Refresh dreams after setting userId
             dreamService.refreshDreams();

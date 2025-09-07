@@ -1,0 +1,121 @@
+{
+  "identifier" : "15E073A8",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptions" : [
+    {
+      "adHocOffers" : [
+
+      ],
+      "codeOffers" : [
+
+      ],
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "groupNumber" : 1,
+      "internalID" : "6739052399",
+      "introductoryOffer" : null,
+      "localizations" : [
+        {
+          "description" : "Unlock all premium features including unlimited dream analysis, image generation, and advanced insights.",
+          "displayName" : "Dreamdex Premium Monthly",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.dreamdex.premium.monthly",
+      "recurringSubscriptionPeriod" : "P1M",
+      "referenceName" : "Premium Monthly",
+      "subscriptionGroupID" : "21554199",
+      "type" : "RecurringSubscription"
+    },
+    {
+      "adHocOffers" : [
+
+      ],
+      "codeOffers" : [
+
+      ],
+      "displayPrice" : "99.99",
+      "familyShareable" : false,
+      "groupNumber" : 1,
+      "internalID" : "6739052677",
+      "introductoryOffer" : {
+        "internalID" : "D1A4E0F8",
+        "paymentMode" : "free",
+        "subscriptionPeriod" : "P1W"
+      },
+      "localizations" : [
+        {
+          "description" : "Unlock all premium features including unlimited dream analysis, image generation, and advanced insights. Save with our annual plan!",
+          "displayName" : "Dreamdex Premium Annual",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.dreamdex.premium.annual",
+      "recurringSubscriptionPeriod" : "P1Y",
+      "referenceName" : "Premium Annual",
+      "subscriptionGroupID" : "21554199",
+      "type" : "RecurringSubscription"
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
