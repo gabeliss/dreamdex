@@ -307,7 +307,4 @@ enum PremiumFeature {
   aiAnalysis,
   imageGeneration,
   unlimitedDreams,
-  dreamSearch,
-  exportData,
-  premiumThemes,
 }

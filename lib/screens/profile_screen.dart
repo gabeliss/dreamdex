@@ -7,6 +7,8 @@ import '../theme/app_colors.dart';
 import '../services/subscription_service.dart';
 import '../widgets/paywall_dialog.dart';
 import 'auth/login_screen.dart';
+import '../services/subscription_service.dart';
+import '../widgets/paywall_dialog.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -306,7 +308,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _handleUpgradeToPremium(BuildContext context) async {
-    await showPaywall(context, PremiumFeature.unlimitedDreams);
+    await showPaywall(context, PremiumFeature.aiAnalysis);
   }
 
   void _handleRestorePurchases(BuildContext context, SubscriptionService subscriptionService) async {

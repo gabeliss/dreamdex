@@ -4,7 +4,6 @@ import '../theme/app_colors.dart';
 import 'home_screen.dart';
 import 'add_dream_screen.dart';
 import 'profile_screen.dart';
-import 'test_subscription_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -20,7 +19,6 @@ class _MainNavigationState extends State<MainNavigation> {
     const HomeScreen(),
     const AddDreamScreen(),
     const ProfileScreen(),
-    const TestSubscriptionScreen(), // Temporary test screen
   ];
 
   @override
@@ -82,18 +80,6 @@ class _MainNavigationState extends State<MainNavigation> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.person),
-              ),
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.bug_report_outlined),
-              label: 'Test',
-              activeIcon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.lightPurple,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.bug_report),
               ),
             ),
           ],

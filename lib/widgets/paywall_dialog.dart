@@ -32,12 +32,6 @@ class _PaywallDialogState extends State<PaywallDialog> {
         return 'Dream Image Generation';
       case PremiumFeature.unlimitedDreams:
         return 'Unlimited Dreams';
-      case PremiumFeature.dreamSearch:
-        return 'Dream Search';
-      case PremiumFeature.exportData:
-        return 'Export Your Data';
-      case PremiumFeature.premiumThemes:
-        return 'Premium Themes';
     }
   }
 
@@ -51,12 +45,6 @@ class _PaywallDialogState extends State<PaywallDialog> {
         return 'Generate beautiful AI images based on your dreams to visualize your subconscious experiences.';
       case PremiumFeature.unlimitedDreams:
         return 'Record and store unlimited dreams without any monthly restrictions.';
-      case PremiumFeature.dreamSearch:
-        return 'Search through all your dreams with advanced filters and keywords.';
-      case PremiumFeature.exportData:
-        return 'Export all your dreams and analysis data to PDF or other formats.';
-      case PremiumFeature.premiumThemes:
-        return 'Access exclusive premium themes and customization options.';
     }
   }
 
@@ -89,9 +77,10 @@ class _PaywallDialogState extends State<PaywallDialog> {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // Header
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -159,9 +148,6 @@ class _PaywallDialogState extends State<PaywallDialog> {
                             _buildFeatureItem('Unlimited AI Dream Analysis'),
                             _buildFeatureItem('AI Image Generation'),
                             _buildFeatureItem('Unlimited Dream Storage'),
-                            _buildFeatureItem('Advanced Search & Filters'),
-                            _buildFeatureItem('Export Your Dreams'),
-                            _buildFeatureItem('Premium Themes'),
                           ],
                         ),
                       ),
@@ -222,6 +208,7 @@ class _PaywallDialogState extends State<PaywallDialog> {
                   ),
                 ),
               ],
+              ),
             ),
           ),
         );

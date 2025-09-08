@@ -9,7 +9,6 @@ import 'screens/auth/welcome_screen.dart';
 import 'services/dream_service.dart';
 import 'services/speech_service.dart';
 import 'services/ai_service.dart';
-import 'services/auth_service.dart';
 import 'services/convex_service.dart';
 import 'services/subscription_service.dart';
 
@@ -20,11 +19,11 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env.local");
   } catch (e) {
-    print("Error loading .env.local file: $e");
+    debugPrint("Error loading .env.local file: $e");
     try {
       await dotenv.load(fileName: ".env");
     } catch (e2) {
-      print("Error loading .env file: $e2");
+      debugPrint("Error loading .env file: $e2");
     }
   }
   
@@ -34,14 +33,14 @@ void main() async {
     try {
       await SubscriptionService.initialize(
         apiKey: revenueCatApiKey,
-        enableDebugLogs: true, // Set to false in production
+        enableDebugLogs: false, // Set to false in production
       );
-      print("RevenueCat initialized successfully");
+      debugPrint("RevenueCat initialized successfully");
     } catch (e) {
-      print("RevenueCat initialization failed: $e");
+      debugPrint("RevenueCat initialization failed: $e");
     }
   } else {
-    print("RevenueCat API key not found in .env file");
+    debugPrint("RevenueCat API key not found in .env file");
   }
   
   SystemChrome.setSystemUIOverlayStyle(
