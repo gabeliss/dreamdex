@@ -47,16 +47,25 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Account'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              Navigator.pop(context);
+            },
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,45 +240,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ).animate().fadeIn(duration: 500.ms, delay: 600.ms).slideY(begin: 0.2),
                 
-                const SizedBox(height: 20),
-                
-                // Divider
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'OR',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.shadowGrey,
-                        ),
-                      ),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ).animate().fadeIn(duration: 500.ms, delay: 700.ms),
-                
-                const SizedBox(height: 20),
-                
-                // Google sign up button
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _handleGoogleSignup,
-                    icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: const Text('Continue with Google'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryPurple,
-                      side: const BorderSide(color: AppColors.primaryPurple),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ).animate().fadeIn(duration: 500.ms, delay: 800.ms).slideY(begin: 0.2),
-                
                 const SizedBox(height: 40),
                 
                 // Sign in link
@@ -296,6 +266,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ).animate().fadeIn(duration: 500.ms, delay: 900.ms),
               ],
             ),
+          ),
           ),
         ),
       ),
@@ -381,45 +352,6 @@ Future<void> _handleSignup() async {
     if (mounted) setState(() => _isLoading = false);
   }
 }
-  Future<void> _handleGoogleSignup() async {
-    debugPrint('Starting Google signup...');
-    
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final auth = ClerkAuth.of(context);
-      
-      debugPrint('Calling attemptSignUp with Strategy.oauthGoogle...');
-      final result = await auth.attemptSignUp(
-        strategy: Strategy.oauthGoogle,
-        redirectUrl: 'dreamdex://callback',
-      );
-      
-      debugPrint('Google signup result: $result');
-      debugPrint('Google signup - Is signed in: ${auth.isSignedIn}');
-      debugPrint('Google signup - Current user: ${auth.user}');
-      
-      // Navigation will be handled automatically by ClerkAuthBuilder
-    } catch (e) {
-      debugPrint('Google signup error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google sign up failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
 
   void _navigateToLogin(BuildContext context) {
     Navigator.pushReplacement(

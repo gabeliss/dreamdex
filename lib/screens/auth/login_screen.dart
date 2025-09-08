@@ -36,14 +36,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign In'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Sign In'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              Navigator.pop(context);
+            },
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
@@ -173,40 +182,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ).animate().fadeIn(duration: 500.ms, delay: 500.ms).slideY(begin: 0.2),
                 
-                const SizedBox(height: 24),
-                
-                // Divider
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'or',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.shadowGrey,
-                        ),
-                      ),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ).animate().fadeIn(duration: 500.ms, delay: 600.ms),
-                
-                const SizedBox(height: 24),
-                
-                // Google sign in
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _signInWithGoogle,
-                    icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: const Text('Continue with Google'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ).animate().fadeIn(duration: 500.ms, delay: 700.ms).slideY(begin: 0.2),
-                
                 const SizedBox(height: 32),
                 
                 // Sign up link
@@ -231,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ).animate().fadeIn(duration: 500.ms, delay: 800.ms),
               ],
             ),
+          ),
           ),
         ),
       ),
@@ -332,41 +308,6 @@ class _LoginScreenState extends State<LoginScreen> {
     debugPrint('=== SIGN IN COMPLETE ===');
   }
   
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      final auth = ClerkAuth.of(context);
-      
-      // Use OAuth Google strategy
-      await auth.attemptSignIn(
-        identifier: '', // Not needed for OAuth
-        strategy: Strategy.oauthGoogle,
-        redirectUrl: 'dreamdex://callback',
-      );
-      
-      // Check if sign-in was successful and navigate explicitly
-      if (mounted && auth.isSignedIn) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainNavigation()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google sign in failed: ${e.toString()}'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
-    }
-    
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
   
   void _navigateToSignup() {
     Navigator.pushReplacement(

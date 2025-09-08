@@ -169,43 +169,6 @@ class AuthService extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> signInWithGoogle() async {
-    if (!_isInitialized) return false;
-
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      // Simulate Google sign in with realistic user data
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Generate realistic Google user data
-      final firstName = 'John';
-      final lastName = 'Doe';
-      final email = 'john.doe@gmail.com';
-      
-      _currentUser = User(
-        id: 'google_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        name: '$firstName $lastName',
-        firstName: firstName,
-        lastName: lastName,
-      );
-      
-      // Persist user session
-      await _persistUserSession(_currentUser!);
-      
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      debugPrint('Error signing in with Google: $e');
-    }
-
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  }
 
   Future<void> _persistUserSession(User user) async {
     try {
