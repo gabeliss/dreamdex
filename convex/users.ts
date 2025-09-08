@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Query to get user by Clerk ID
 export const getByClerkId = query({
@@ -170,5 +171,68 @@ export const getStats = query({
         averagePerWeek: dreams.length > 0 ? Math.round(dreams.length / Math.max(1, Math.floor((now - dreams[dreams.length - 1]._creationTime) / (7 * 24 * 60 * 60 * 1000)))) : 0,
       },
     };
+  },
+});
+
+// Action to delete user account and all associated data (including Clerk)
+export const deleteAccount = action({
+  args: { 
+    clerkId: v.string(),
+    clerkSecretKey: v.string()
+  },
+  handler: async (ctx, args): Promise<{success: boolean, deletedDreams: number, message: string}> => {
+    // First, delete from Convex database
+    const user = await ctx.runQuery(api.users.getByClerkId, { clerkId: args.clerkId });
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Delete all dreams associated with this user
+    const dreams: any[] = await ctx.runQuery(api.dreams.list, { userId: args.clerkId });
+    
+    // Delete each dream individually
+    for (const dream of dreams) {
+      await ctx.runMutation(api.dreams.remove, { id: dream._id, userId: args.clerkId });
+    }
+
+    // Delete the user record from Convex
+    await ctx.runMutation(api.users.remove, { clerkId: args.clerkId });
+
+    // Delete from Clerk using backend API
+    try {
+      await ctx.runAction(api.clerk.deleteUser, { 
+        clerkUserId: args.clerkId,
+        clerkSecretKey: args.clerkSecretKey
+      });
+      console.log("Successfully deleted user from Clerk");
+    } catch (error) {
+      console.error("Failed to delete user from Clerk:", error);
+      // Continue with the deletion process even if Clerk deletion fails
+      // The user data is already removed from our database
+    }
+
+    return {
+      success: true,
+      deletedDreams: dreams.length,
+      message: `Account deleted successfully. Removed ${dreams.length} dreams.`
+    };
+  },
+});
+
+// Helper mutation to remove user (called by deleteAccount action)
+export const remove = mutation({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (user) {
+      await ctx.db.delete(user._id);
+    }
+    
+    return user?._id;
   },
 });

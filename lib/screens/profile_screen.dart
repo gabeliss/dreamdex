@@ -3,12 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../theme/app_colors.dart';
 import '../services/subscription_service.dart';
+import '../services/auth_service.dart';
+import '../services/convex_service.dart';
 import '../widgets/paywall_dialog.dart';
 import 'auth/login_screen.dart';
-import '../services/subscription_service.dart';
-import '../widgets/paywall_dialog.dart';
+import 'auth/welcome_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -405,47 +407,114 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _handleDeleteAccount(BuildContext context) {
+    // Get services before showing dialog to avoid Provider context issues
+    final auth = ClerkAuth.of(context);
+    final convexService = Provider.of<ConvexService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Account'),
         content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.',
+          'Are you sure you want to delete your account? This action cannot be undone and all your dreams and data will be permanently lost.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
-              
-              // Show confirmation dialog
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Final Confirmation'),
-                  content: const Text('Type "DELETE" to confirm account deletion:'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('DELETE'),
-                    ),
-                  ],
-                ),
-              );
+              Navigator.pop(dialogContext); // Close dialog
 
-              if (confirmed == true && context.mounted) {
+              if (context.mounted) {
                 try {
-                  // TODO: Implement actual account deletion logic
-                  _showSnackBar(context, 'Account deletion requested. You will be contacted within 24 hours.', isError: false);
-                } catch (e) {
+                  debugPrint('=== STARTING ACCOUNT DELETION ===');
+                  
+                  if (auth.user == null) {
+                    _showSnackBar(context, 'No user logged in', isError: true);
+                    return;
+                  }
+
+                  final clerkId = auth.user!.id;
+                  
+                  // Show loading dialog
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => AlertDialog(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Deleting your account...',
+                            style: TextStyle(color: AppColors.nightGrey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+
+                  // 1. First delete from Convex (dreams and user data)
+                  String? clerkSecretKey;
+                  try {
+                    clerkSecretKey = dotenv.env['CLERK_SECRET_KEY'];
+                    debugPrint('Clerk secret key found: ${clerkSecretKey != null && clerkSecretKey.isNotEmpty}');
+                  } catch (e) {
+                    debugPrint('Error accessing environment variables: $e');
+                    if (context.mounted) Navigator.pop(context); // Close loading dialog
+                    _showSnackBar(context, 'Configuration error: Unable to access environment variables', isError: true);
+                    return;
+                  }
+                  
+                  if (clerkSecretKey == null || clerkSecretKey.isEmpty) {
+                    if (context.mounted) Navigator.pop(context); // Close loading dialog
+                    _showSnackBar(context, 'Configuration error: Clerk secret key not found', isError: true);
+                    return;
+                  }
+                  
+                  final convexResult = await convexService.deleteAccount(clerkId, clerkSecretKey);
+                  if (convexResult == null) {
+                    if (context.mounted) Navigator.pop(context); // Close loading dialog
+                    _showSnackBar(context, 'Failed to delete user data. Please try again.', isError: true);
+                    return;
+                  }
+
+                  // 2. Clear subscription service user data
+                  await subscriptionService.clearUserId();
+
+                  // 3. Sign out locally
+                  try {
+                    // Sign out from Clerk
+                    await auth.signOut();
+                  } catch (e) {
+                    if (context.mounted) Navigator.pop(context); // Close loading dialog
+                    _showSnackBar(context, 'Failed to sign out: $e', isError: true);
+                    return;
+                  }
+
+                  // Close loading dialog
+                  if (context.mounted) Navigator.pop(context);
+
+                  // Show success message and navigate to welcome screen
+                  _showSnackBar(context, 'Account data deleted successfully. ${convexResult['deletedDreams']} dreams were removed. You have been signed out.', isError: false);
+                  
+                  // Navigate to welcome screen after a delay
+                  await Future.delayed(const Duration(seconds: 2));
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                      (route) => false,
+                    );
+                  }
+                } catch (e, stackTrace) {
+                  // Close loading dialog if it's open
+                  debugPrint('Error during account deletion: $e');
+                  debugPrint('Stack trace: $stackTrace');
+                  if (Navigator.canPop(context)) Navigator.pop(context);
                   _showSnackBar(context, 'Failed to delete account: $e', isError: true);
                 }
               }

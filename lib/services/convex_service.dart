@@ -499,4 +499,58 @@ class ConvexService extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Delete user account and all associated data from Convex
+  Future<Map<String, dynamic>?> deleteAccount(String clerkId, String clerkSecretKey) async {
+    debugPrint('=== CONVEX DELETE ACCOUNT ===');
+    debugPrint('ConvexService initialized: $_isInitialized');
+    debugPrint('Convex URL: $_convexUrl');
+    debugPrint('Clerk ID: $clerkId');
+
+    if (!_isInitialized) {
+      debugPrint('ConvexService not initialized, aborting account deletion');
+      return null;
+    }
+
+    try {
+      final payload = {
+        'clerkId': clerkId,
+        'clerkSecretKey': clerkSecretKey,
+      };
+
+      debugPrint('Delete account payload: $payload');
+
+      final response = await _dio.post(
+        '$_convexUrl/api/action',
+        data: {
+          'path': 'users:deleteAccount',
+          'args': payload,
+        },
+      );
+
+      debugPrint('Delete account response status: ${response.statusCode}');
+      debugPrint('Delete account response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        if (response.data['error'] != null) {
+          debugPrint('❌ Convex API returned error: ${response.data['error']}');
+          return null;
+        } else {
+          debugPrint('✅ Account deleted successfully from Convex');
+          return response.data as Map<String, dynamic>;
+        }
+      } else {
+        debugPrint('❌ Unexpected response status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Error deleting account from Convex: $e');
+      if (e is DioException) {
+        debugPrint('This is likely a network or API format issue');
+      }
+      return null;
+    } finally {
+      debugPrint('=== END CONVEX DELETE ACCOUNT ===');
+    }
+  }
 }

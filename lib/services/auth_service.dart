@@ -260,4 +260,37 @@ class AuthService extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  /// Delete user account (sign out locally - Clerk deletion handled in UI)
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (_currentUser == null) {
+        debugPrint('No user to delete');
+        return false;
+      }
+
+      // Clear persisted user session  
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_id');
+      await prefs.remove('user_email');
+      await prefs.remove('user_name');
+      await prefs.remove('user_first_name');
+      await prefs.remove('user_last_name');
+      
+      // Clear local state
+      _currentUser = null;
+      
+      debugPrint('User account deleted successfully');
+      return true;
+    } catch (e) {
+      debugPrint('Error deleting account: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }
