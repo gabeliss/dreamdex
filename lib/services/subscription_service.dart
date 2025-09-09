@@ -232,6 +232,19 @@ class SubscriptionService extends ChangeNotifier {
   Future<void> clearUserId() async {
     try {
       await Purchases.logOut();
+    } on PlatformException catch (e) {
+      // Handle the case where user is already anonymous
+      if (e.code == '22' || e.message?.contains('anonymous') == true) {
+        debugPrint('User is already anonymous, skipping logout');
+      } else {
+        debugPrint('Error clearing user ID: $e');
+        // Don't rethrow - we want to continue with clearing local state
+      }
+    } catch (e) {
+      debugPrint('Error clearing user ID: $e');
+      // Don't rethrow - we want to continue with clearing local state
+    } finally {
+      // Always clear local state regardless of RevenueCat logout result
       _isPremium = false;
       _customerInfo = null;
       
@@ -241,8 +254,6 @@ class SubscriptionService extends ChangeNotifier {
       await prefs.remove(_lastSubscriptionCheckKey);
       
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error clearing user ID: $e');
     }
   }
 

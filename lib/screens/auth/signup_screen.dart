@@ -276,7 +276,10 @@ class _SignupScreenState extends State<SignupScreen> {
 bool _codeDialogOpen = false;
 
 Future<void> _handleSignup() async {
-  if (!_formKey.currentState!.validate() || _codeDialogOpen) return;
+  debugPrint('=== _handleSignup() CALLED ===');
+  debugPrint('=== Current _isLoading: $_isLoading ===');
+  if (_isLoading || !_formKey.currentState!.validate() || _codeDialogOpen) return;
+  debugPrint('=== _handleSignup() VALIDATION PASSED, SETTING LOADING ===');
   setState(() => _isLoading = true);
 
   try {
@@ -292,6 +295,10 @@ Future<void> _handleSignup() async {
     final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
     // Start with email code strategy but include all required fields
+    debugPrint('=== ABOUT TO CALL attemptSignUp() ===');
+    debugPrint('Email: ${_emailController.text.trim()}');
+    debugPrint('FirstName: $firstName');
+    debugPrint('LastName: $lastName');
     await auth.attemptSignUp(
       strategy: Strategy.emailCode,
       emailAddress: _emailController.text.trim(),
@@ -389,6 +396,13 @@ Future<void> _handleSignup() async {
                 'We sent a verification code to ${_emailController.text.trim()}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Note: You may receive multiple codes - any of them will work.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: codeController,
@@ -436,13 +450,10 @@ Future<void> _verifyEmailCode(String code) async {
     debugPrint('Code entered: $code');
     debugPrint('Current signup status before verify: ${auth.client?.signUp?.status}');
 
-    // 2) Verify the email code - include password in case Clerk needs it
+    // 2) Verify the email code - only pass strategy and code
     await auth.attemptSignUp(
-      strategy: Strategy.emailCode, 
+      strategy: Strategy.emailCode,
       code: code,
-      emailAddress: _emailController.text.trim(),
-      password: _passwordController.text,
-      passwordConfirmation: _passwordController.text,
     );
 
     debugPrint('=== AFTER EMAIL CODE VERIFICATION ===');
@@ -451,11 +462,12 @@ Future<void> _verifyEmailCode(String code) async {
     debugPrint('=====================================');
 
     if (mounted) {
-      Navigator.of(context).pop(); // Close verification dialog
-      _codeDialogOpen = false;
-      
-      // If user is now signed in, sync user to Convex and navigate to home
+      // Only proceed if verification was successful (user is signed in)
       if (auth.isSignedIn) {
+        // Close verification dialog on success
+        Navigator.of(context).pop();
+        _codeDialogOpen = false;
+        
         debugPrint('Signup complete! Syncing user to Convex...');
         
         // Sync user to Convex
@@ -479,6 +491,12 @@ Future<void> _verifyEmailCode(String code) async {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainNavigation()),
           (route) => false,
+        );
+      } else {
+        // Verification failed but no exception was thrown
+        // Show error message but keep dialog open
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid verification code. Please try again.'), backgroundColor: Colors.red),
         );
       }
     }

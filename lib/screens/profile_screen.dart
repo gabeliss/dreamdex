@@ -550,33 +550,51 @@ class ProfileScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
+              debugPrint('=== SIGN OUT BUTTON PRESSED ===');
+              
+              // Store navigator before any async operations
+              final navigator = Navigator.of(context);
+              
+              navigator.pop(); // Close dialog
+              debugPrint('Dialog closed');
+              
+              final auth = ClerkAuth.of(context);
+              final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+              
+              debugPrint('Starting logout process...');
+              debugPrint('User before logout: ${auth.user?.id}');
               
               try {
-                // Clear subscription service data
-                final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+                // Clear subscription service data first (this handles RevenueCat logout)
+                debugPrint('Clearing subscription data...');
                 await subscriptionService.clearUserId();
-                
-                final auth = ClerkAuth.of(context);
-                await auth.signOut();
-                
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (route) => false,
-                  );
+                debugPrint('Subscription data cleared');
+              } catch (e) {
+                debugPrint('Error clearing subscription data: $e');
+                // Continue with logout even if this fails
+              }
+              
+              try {
+                // Then sign out from Clerk if user is authenticated
+                if (auth.user != null) {
+                  debugPrint('Signing out from Clerk...');
+                  await auth.signOut();
+                  debugPrint('Clerk sign out completed');
+                } else {
+                  debugPrint('User already null, skipping Clerk signout');
                 }
               } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Sign out failed: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                debugPrint('Error signing out from Clerk: $e');
+                // Continue with navigation even if this fails
               }
+              
+              // Navigate using the stored navigator
+              debugPrint('Navigating to login screen...');
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+              debugPrint('Navigation completed');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Sign Out'),
