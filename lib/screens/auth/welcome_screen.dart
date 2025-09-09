@@ -63,7 +63,7 @@ class WelcomeScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => _navigateToClerkAuth(context),
+                        onPressed: () => _navigateToAuth(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryPurple,
                           foregroundColor: AppColors.cloudWhite,
@@ -150,7 +150,7 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToClerkAuth(BuildContext context) {
+  void _navigateToAuth(BuildContext context) {
     Navigator.push(
       context,
       PageRouteBuilder(

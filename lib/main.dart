@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_navigation.dart';
 import 'screens/auth/welcome_screen.dart';
@@ -11,9 +11,13 @@ import 'services/speech_service.dart';
 import 'services/ai_service.dart';
 import 'services/convex_service.dart';
 import 'services/subscription_service.dart';
+import 'services/firebase_auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  await Firebase.initializeApp();
   
   // Load environment variables
   try {
@@ -60,42 +64,18 @@ class DreamdexApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final publishableKey = dotenv.env['CLERK_PUBLISHABLE_KEY'];
-    
-    if (publishableKey == null || publishableKey.isEmpty) {
-      return MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error, color: Colors.red, size: 48),
-                SizedBox(height: 16),
-                Text(
-                  'CLERK_PUBLISHABLE_KEY not found',
-                  style: TextStyle(fontSize: 18, color: Colors.red),
-                ),
-                Text('Please add your Clerk publishable key to .env file'),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return ClerkAuth(
-      config: ClerkAuthConfig(publishableKey: publishableKey),
-      child: MultiProvider(
+    return MultiProvider(
         providers: [
+          ChangeNotifierProvider(create: (_) => FirebaseAuthService()),
           ChangeNotifierProvider(create: (_) => ConvexService()),
           ChangeNotifierProvider(create: (_) => SubscriptionService()),
-          ChangeNotifierProxyProvider<ConvexService, DreamService>(
+          ChangeNotifierProxyProvider2<ConvexService, FirebaseAuthService, DreamService>(
             create: (context) => DreamService(
               context.read<ConvexService>(),
-              null, // No longer need AuthService since Clerk handles it
+              context.read<FirebaseAuthService>(),
             ),
-            update: (context, convexService, previous) {
-              return previous ?? DreamService(convexService, null);
+            update: (context, convexService, authService, previous) {
+              return previous ?? DreamService(convexService, authService);
             },
           ),
           ChangeNotifierProvider(create: (_) => SpeechService()),
@@ -112,8 +92,7 @@ class DreamdexApp extends StatelessWidget {
           theme: AppTheme.theme,
           home: const AuthGate(),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -127,40 +106,56 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
-    return ClerkAuthBuilder(
-      signedInBuilder: (context, authState) {
-        debugPrint('ClerkAuthBuilder: User is signed in');
-        debugPrint('User: ${authState.user}');
-        debugPrint('Sessions: ${authState.client?.sessions?.length ?? 0}');
-        
-        // Set userId in ConvexService and SubscriptionService for existing authenticated users
-        if (authState.user != null) {
+    return Consumer<FirebaseAuthService>(
+      builder: (context, authService, child) {
+        if (!authService.isInitialized) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (authService.isAuthenticated) {
+          final user = authService.currentUser!;
+          debugPrint('Firebase Auth: User is signed in');
+          debugPrint('User: ${user.email}');
+          debugPrint('User ID: ${user.uid}');
+          
+          // Set userId in ConvexService and SubscriptionService for authenticated users
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final convexService = Provider.of<ConvexService>(context, listen: false);
             final dreamService = Provider.of<DreamService>(context, listen: false);
             final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
             
-            convexService.setUserId(authState.user!.id);
-            debugPrint('Set userId in ConvexService: ${authState.user!.id}');
+            convexService.setUserId(user.uid);
+            debugPrint('Set userId in ConvexService: ${user.uid}');
             
             // Initialize and set user in subscription service
             subscriptionService.initializeService().then((_) {
-              subscriptionService.setUserId(authState.user!.id);
-              debugPrint('Initialized subscription service for user: ${authState.user!.id}');
+              subscriptionService.setUserId(user.uid);
+              debugPrint('Initialized subscription service for user: ${user.uid}');
             });
+            
+            // Sync user to Convex backend
+            convexService.upsertUser(
+              authId: user.uid, // Using Firebase UID as identifier
+              email: user.email ?? '',
+              firstName: user.displayName?.split(' ').first,
+              lastName: user.displayName?.split(' ').skip(1).join(' '),
+              profileImageUrl: user.photoURL,
+            );
             
             // Refresh dreams after setting userId
             dreamService.refreshDreams();
             debugPrint('Refreshing dreams after authentication');
           });
+          
+          return const MainNavigation();
+        } else {
+          debugPrint('Firebase Auth: User is signed out');
+          return const WelcomeScreen();
         }
-        
-        return const MainNavigation();
-      },
-      signedOutBuilder: (context, authState) {
-        debugPrint('ClerkAuthBuilder: User is signed out');
-        debugPrint('Client sessions: ${authState.client?.sessions?.length ?? 0}');
-        return const WelcomeScreen();
       },
     );
   }

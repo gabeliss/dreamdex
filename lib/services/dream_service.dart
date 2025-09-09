@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
 import '../models/dream.dart';
 import 'convex_service.dart';
+import 'firebase_auth_service.dart';
 
 class DreamService extends ChangeNotifier {
   final ConvexService _convexService;
+  final FirebaseAuthService _authService;
   
   List<Dream> _dreams = [];
   bool _isLoading = false;
@@ -16,13 +17,34 @@ class DreamService extends ChangeNotifier {
   List<Dream> get recentDreams => _dreams.take(5).toList();
   List<Dream> get favoriteDreams => _dreams.where((d) => d.isFavorite).toList();
 
-  DreamService(this._convexService, authService) {
-    // Load dreams initially - Clerk handles auth state
-    _loadDreams();
+  DreamService(this._convexService, this._authService) {
+    // Load dreams initially if user is authenticated
+    if (_authService.isAuthenticated) {
+      _loadDreams();
+    }
+    
+    // Listen to auth changes
+    _authService.addListener(_onAuthChanged);
+  }
+  
+  void _onAuthChanged() {
+    if (_authService.isAuthenticated) {
+      _loadDreams();
+    } else {
+      _dreams.clear();
+      notifyListeners();
+    }
+  }
+  
+  @override
+  void dispose() {
+    _authService.removeListener(_onAuthChanged);
+    super.dispose();
   }
 
   Future<void> _loadDreams() async {
-    // Clerk handles auth state, so we can always try to load
+    // Only load dreams if user is authenticated
+    if (!_authService.isAuthenticated) return;
     
     _isLoading = true;
     notifyListeners();

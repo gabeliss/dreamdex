@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "578897121117",
+    "project_id": "dreamdex-e9296",
+    "storage_bucket": "dreamdex-e9296.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:578897121117:android:0902b7258970b4366da2b4",
+        "android_client_info": {
+          "package_name": "com.example.dreamdex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB34oXS7y5foCOmW_ezRbeCb5MZSGTx4qM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

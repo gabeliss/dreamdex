@@ -2,23 +2,24 @@ import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
 import { api } from "./_generated/api";
 
-// Query to get user by Clerk ID
-export const getByClerkId = query({
-  args: { clerkId: v.string() },
+// Query to get user by Auth ID (Firebase UID)
+export const getByAuthId = query({
+  args: { authId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
     
     return user;
   },
 });
 
+
 // Mutation to create or update user
 export const upsert = mutation({
   args: {
-    clerkId: v.string(),
+    authId: v.string(), // Firebase UID
     email: v.string(),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -27,7 +28,7 @@ export const upsert = mutation({
   handler: async (ctx, args) => {
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
 
     if (existingUser) {
@@ -44,7 +45,7 @@ export const upsert = mutation({
     } else {
       // Create new user
       const userId = await ctx.db.insert("users", {
-        clerkId: args.clerkId,
+        authId: args.authId, // Store Firebase UID
         email: args.email,
         firstName: args.firstName,
         lastName: args.lastName,
@@ -67,7 +68,7 @@ export const upsert = mutation({
 // Mutation to update user preferences
 export const updatePreferences = mutation({
   args: {
-    clerkId: v.string(),
+    authId: v.string(),
     preferences: v.object({
       enableNotifications: v.boolean(),
       dreamReminders: v.boolean(),
@@ -78,7 +79,7 @@ export const updatePreferences = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
 
     if (!user) {
@@ -96,7 +97,7 @@ export const updatePreferences = mutation({
 // Mutation to update user profile
 export const updateProfile = mutation({
   args: {
-    clerkId: v.string(),
+    authId: v.string(),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     profileImageUrl: v.optional(v.string()),
@@ -104,7 +105,7 @@ export const updateProfile = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
 
     if (!user) {
@@ -123,11 +124,11 @@ export const updateProfile = mutation({
 
 // Query to get user stats
 export const getStats = query({
-  args: { clerkId: v.string() },
+  args: { authId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
 
     if (!user) {
@@ -137,7 +138,7 @@ export const getStats = query({
     // Get dream stats
     const dreams = await ctx.db
       .query("dreams")
-      .withIndex("by_user", (q) => q.eq("userId", args.clerkId))
+      .withIndex("by_user", (q) => q.eq("userId", args.authId))
       .collect();
 
     const now = Date.now();
@@ -174,43 +175,33 @@ export const getStats = query({
   },
 });
 
-// Action to delete user account and all associated data (including Clerk)
+// Action to delete user account and all associated data (Firebase Auth handles user deletion)
 export const deleteAccount = action({
   args: { 
-    clerkId: v.string(),
-    clerkSecretKey: v.string()
+    authId: v.string(),
+    firebaseIdToken: v.optional(v.string()) // For future Firebase integration
   },
   handler: async (ctx, args): Promise<{success: boolean, deletedDreams: number, message: string}> => {
     // First, delete from Convex database
-    const user = await ctx.runQuery(api.users.getByClerkId, { clerkId: args.clerkId });
+    const user = await ctx.runQuery(api.users.getByAuthId, { authId: args.authId });
     
     if (!user) {
       throw new Error("User not found");
     }
 
     // Delete all dreams associated with this user
-    const dreams: any[] = await ctx.runQuery(api.dreams.list, { userId: args.clerkId });
+    const dreams: any[] = await ctx.runQuery(api.dreams.list, { userId: args.authId });
     
     // Delete each dream individually
     for (const dream of dreams) {
-      await ctx.runMutation(api.dreams.remove, { id: dream._id, userId: args.clerkId });
+      await ctx.runMutation(api.dreams.remove, { id: dream._id, userId: args.authId });
     }
 
     // Delete the user record from Convex
-    await ctx.runMutation(api.users.remove, { clerkId: args.clerkId });
+    await ctx.runMutation(api.users.remove, { authId: args.authId });
 
-    // Delete from Clerk using backend API
-    try {
-      await ctx.runAction(api.clerk.deleteUser, { 
-        clerkUserId: args.clerkId,
-        clerkSecretKey: args.clerkSecretKey
-      });
-      console.log("Successfully deleted user from Clerk");
-    } catch (error) {
-      console.error("Failed to delete user from Clerk:", error);
-      // Continue with the deletion process even if Clerk deletion fails
-      // The user data is already removed from our database
-    }
+    // Note: Firebase user deletion is handled client-side or via Admin SDK
+    // The client should delete the Firebase user after this action succeeds
 
     return {
       success: true,
@@ -222,11 +213,11 @@ export const deleteAccount = action({
 
 // Helper mutation to remove user (called by deleteAccount action)
 export const remove = mutation({
-  args: { clerkId: v.string() },
+  args: { authId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.authId))
       .first();
 
     if (user) {

@@ -8,7 +8,7 @@
     "predev": "convex codegen",
     "build": "convex codegen && tsc"
   },
-  "keywords": ["dreams", "ai", "convex", "clerk"],
+  "keywords": ["dreams", "ai", "convex"],
   "author": "",
   "license": "MIT",
   "devDependencies": {

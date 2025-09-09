@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
-import 'package:clerk_auth/src/models/client/strategy.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
+import '../../services/firebase_auth_service.dart';
 import '../../services/convex_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -210,79 +210,67 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
     
-    debugPrint('=== STARTING SIGN IN ===');
+    debugPrint('=== STARTING FIREBASE SIGN IN ===');
     debugPrint('Email: ${_emailController.text.trim()}');
     
     setState(() => _isLoading = true);
     
     try {
-      final auth = ClerkAuth.of(context);
-      debugPrint('Auth instance obtained: ${auth != null}');
-      debugPrint('Is signed in before attempt: ${auth.isSignedIn}');
+      final authService = Provider.of<FirebaseAuthService>(context, listen: false);
       
-      // Use the correct Clerk API method
-      debugPrint('Calling attemptSignIn...');
-      await auth.attemptSignIn(
-        identifier: _emailController.text.trim(),
-        strategy: Strategy.password,
-        password: _passwordController.text,
+      final success = await authService.signInWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
       
-      debugPrint('attemptSignIn completed');
-      debugPrint('Is signed in after attempt: ${auth.isSignedIn}');
-      debugPrint('Current user: ${auth.user}');
-      debugPrint('Client sessions: ${auth.client?.sessions?.length ?? 0}');
-      debugPrint('SignIn status: ${auth.client?.signIn?.status}');
-      debugPrint('SignIn identifier: ${auth.client?.signIn?.identifier}');
-
-      // Check if sign-in was successful and navigate explicitly
-      if (mounted && auth.isSignedIn) {
-        debugPrint('Sign in successful! Syncing user to Convex...');
-        
-        // Sync user to Convex
-        final convexService = Provider.of<ConvexService>(context, listen: false);
-        final user = auth.client?.user;
-        
-        if (user != null) {
-          // Set the userId for dream operations
-          convexService.setUserId(user.id);
+      if (mounted) {
+        if (success) {
+          debugPrint('Firebase sign in successful!');
           
-          await convexService.upsertUser(
-            clerkId: user.id,
-            email: user.email ?? '',
-            firstName: user.firstName,
-            lastName: user.lastName,
-            profileImageUrl: user.profileImageUrl,
-          );
-        }
-        
-        debugPrint('User sync complete! Navigating to home...');
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainNavigation()),
-          (route) => false,
-        );
-      } else {
-        debugPrint('Sign in did not complete - isSignedIn: ${auth.isSignedIn}, mounted: $mounted');
-        
-        // Check the sign-in status and show appropriate error
-        final signInStatus = auth.client?.signIn?.status;
-        if (mounted) {
-          String errorMessage = 'Sign in failed';
+          // Sync user to Convex
+          final convexService = Provider.of<ConvexService>(context, listen: false);
+          final user = authService.currentUser;
           
-          if (signInStatus == 'needs_first_factor') {
-            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-          } else if (signInStatus != null) {
-            errorMessage = 'Sign in failed: $signInStatus';
+          if (user != null) {
+            // Set the userId for dream operations
+            convexService.setUserId(user.uid);
+            
+            await convexService.upsertUser(
+              authId: user.uid, // Using Firebase UID
+              email: user.email ?? '',
+              firstName: user.displayName?.split(' ').first,
+              lastName: user.displayName?.split(' ').skip(1).join(' '),
+              profileImageUrl: user.photoURL,
+            );
           }
           
+          debugPrint('User sync complete! Navigating to home...');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainNavigation()),
+            (route) => false,
+          );
+        } else {
+          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMessage),
+              content: Text('Invalid email or password. Please check your credentials and try again.'),
               backgroundColor: AppColors.errorRed,
               duration: const Duration(seconds: 4),
             ),
           );
         }
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth error: ${e.code} - ${e.message}');
+      if (mounted) {
+        final authService = Provider.of<FirebaseAuthService>(context, listen: false);
+        final errorMessage = authService.getFirebaseErrorMessage(e.code);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage ?? 'Sign in failed'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Sign in error: $e');
@@ -299,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
     }
-    debugPrint('=== SIGN IN COMPLETE ===');
+    debugPrint('=== FIREBASE SIGN IN COMPLETE ===');
   }
   
   

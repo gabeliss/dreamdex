@@ -360,7 +360,7 @@ class ConvexService extends ChangeNotifier {
 
   // Create or update user in Convex
   Future<String?> upsertUser({
-    required String clerkId,
+    required String authId, // Firebase UID
     required String email,
     String? firstName,
     String? lastName,
@@ -369,7 +369,7 @@ class ConvexService extends ChangeNotifier {
     debugPrint('=== CONVEX UPSERT USER ===');
     debugPrint('ConvexService initialized: $_isInitialized');
     debugPrint('Convex URL: $_convexUrl');
-    debugPrint('Clerk ID: $clerkId');
+    debugPrint('Auth ID: $authId');
     debugPrint('Email: $email');
     debugPrint('First Name: $firstName');
     debugPrint('Last Name: $lastName');
@@ -382,7 +382,7 @@ class ConvexService extends ChangeNotifier {
     try {
       // Build args object, excluding null values for optional fields
       final Map<String, dynamic> args = {
-        'clerkId': clerkId,
+        'authId': authId,
         'email': email,
       };
       
@@ -546,11 +546,11 @@ class ConvexService extends ChangeNotifier {
   }
 
   /// Delete user account and all associated data from Convex
-  Future<Map<String, dynamic>?> deleteAccount(String clerkId, String clerkSecretKey) async {
+  Future<Map<String, dynamic>?> deleteAccount(String firebaseUid, String? _) async {
     debugPrint('=== CONVEX DELETE ACCOUNT ===');
     debugPrint('ConvexService initialized: $_isInitialized');
     debugPrint('Convex URL: $_convexUrl');
-    debugPrint('Clerk ID: $clerkId');
+    debugPrint('Firebase UID: $firebaseUid');
 
     if (!_isInitialized) {
       debugPrint('ConvexService not initialized, aborting account deletion');
@@ -559,8 +559,7 @@ class ConvexService extends ChangeNotifier {
 
     try {
       final payload = {
-        'clerkId': clerkId,
-        'clerkSecretKey': clerkSecretKey,
+        'authId': firebaseUid,
       };
 
       debugPrint('Delete account payload: $payload');

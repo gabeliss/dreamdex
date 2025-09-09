@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
-import 'package:clerk_auth/clerk_auth.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:clerk_auth/src/models/client/verification.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'login_screen.dart';
+import '../../services/firebase_auth_service.dart';
 import '../../services/convex_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -276,83 +274,72 @@ class _SignupScreenState extends State<SignupScreen> {
 bool _codeDialogOpen = false;
 
 Future<void> _handleSignup() async {
-  debugPrint('=== _handleSignup() CALLED ===');
-  debugPrint('=== Current _isLoading: $_isLoading ===');
-  if (_isLoading || !_formKey.currentState!.validate() || _codeDialogOpen) return;
-  debugPrint('=== _handleSignup() VALIDATION PASSED, SETTING LOADING ===');
+  debugPrint('=== FIREBASE SIGNUP CALLED ===');
+  if (_isLoading || !_formKey.currentState!.validate()) return;
+  
   setState(() => _isLoading = true);
 
   try {
-    final auth = ClerkAuth.of(context);
-
-    if (auth.isSignedIn) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
+    final authService = Provider.of<FirebaseAuthService>(context, listen: false);
     final parts = _nameController.text.trim().split(' ');
     final firstName = parts.isNotEmpty ? parts.first : '';
     final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
-    // Start with email code strategy but include all required fields
-    debugPrint('=== ABOUT TO CALL attemptSignUp() ===');
     debugPrint('Email: ${_emailController.text.trim()}');
     debugPrint('FirstName: $firstName');
     debugPrint('LastName: $lastName');
-    await auth.attemptSignUp(
-      strategy: Strategy.emailCode,
-      emailAddress: _emailController.text.trim(),
+    
+    final success = await authService.signUpWithEmailAndPassword(
+      email: _emailController.text.trim(),
       password: _passwordController.text,
-      passwordConfirmation: _passwordController.text,
-      firstName: firstName.isNotEmpty ? firstName : null,
-      lastName: lastName.isNotEmpty ? lastName : null,
+      firstName: firstName,
+      lastName: lastName,
     );
 
-    debugPrint('=== AFTER COMBINED SIGNUP ===');
-    final su = auth.client?.signUp;
-    debugPrint('Signup status: ${su?.status}');
-    debugPrint('Missing fields: ${su?.missingFields}');
-    debugPrint('IsSignedIn: ${auth.isSignedIn}');
-    debugPrint('==============================');
-
     if (mounted) {
-      // If already signed in, signup completed immediately
-      if (auth.isSignedIn) {
-        debugPrint('Signup completed immediately! Syncing user to Convex...');
+      if (success) {
+        debugPrint('Firebase signup successful!');
         
-        // Sync user to Convex
-        final convexService = Provider.of<ConvexService>(context, listen: false);
-        final user = auth.client?.user;
-        
-        if (user != null) {
-          // Set the userId for dream operations
-          convexService.setUserId(user.id);
-          
-          await convexService.upsertUser(
-            clerkId: user.id,
-            email: user.email ?? '',
-            firstName: user.firstName,
-            lastName: user.lastName,
-            profileImageUrl: user.profileImageUrl,
-          );
+        // Send verification email immediately after signup
+        try {
+          await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+          debugPrint('Email verification sent successfully!');
+        } catch (e) {
+          debugPrint('Failed to send verification email: $e');
+          // Continue anyway - user can request another email later
         }
         
-        debugPrint('User sync complete! Navigating to home...');
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainNavigation()),
-          (route) => false,
-        );
+        // Show email verification dialog
+        if (!_codeDialogOpen) {
+          _codeDialogOpen = true;
+          _showEmailVerificationDialog();
+        }
       } else {
-        // Otherwise show verification dialog
-        debugPrint('Email verification required, showing dialog...');
-        _codeDialogOpen = true;
-        _showEmailVerificationDialog();
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sign up failed. Please try again.'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
       }
+    }
+  } on FirebaseAuthException catch (e) {
+    debugPrint('Firebase Auth error: ${e.code} - ${e.message}');
+    if (mounted) {
+      final authService = Provider.of<FirebaseAuthService>(context, listen: false);
+      final errorMessage = authService.getFirebaseErrorMessage(e.code);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage ?? 'Sign up failed'),
+          backgroundColor: AppColors.errorRed,
+        ),
+      );
     }
   } catch (e) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign up failed: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Sign up failed: $e'), backgroundColor: AppColors.errorRed),
       );
     }
   } finally {
@@ -381,8 +368,6 @@ Future<void> _handleSignup() async {
   }
 
   void _showEmailVerificationDialog() {
-    final codeController = TextEditingController();
-    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -392,26 +377,24 @@ Future<void> _handleSignup() async {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'We sent a verification code to ${_emailController.text.trim()}',
-                style: Theme.of(context).textTheme.bodyMedium,
+              Icon(
+                Icons.mark_email_unread,
+                size: 48,
+                color: AppColors.primaryPurple,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Text(
-                'Note: You may receive multiple codes - any of them will work.',
+                'We sent a verification link to ${_emailController.text.trim()}',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Please check your email and click the verification link to complete your registration.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey[600],
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Verification Code',
-                  hintText: 'Enter 6-digit code',
-                ),
-                keyboardType: TextInputType.number,
-                maxLength: 6,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -419,14 +402,39 @@ Future<void> _handleSignup() async {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _codeDialogOpen = false; // allow re-signup
+                _codeDialogOpen = false;
                 setState(() => _isLoading = false);
               },
               child: const Text('Cancel'),
             ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Verification email sent again!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to resend email. Please try again.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Resend Email'),
+            ),
             ElevatedButton(
-              onPressed: () => _verifyEmailCode(codeController.text),
-              child: const Text('Verify'),
+              onPressed: () => _checkEmailVerification(),
+              child: const Text('I\'ve Verified'),
             ),
           ],
         );
@@ -434,58 +442,54 @@ Future<void> _handleSignup() async {
     );
   }
 
-Future<void> _verifyEmailCode(String code) async {
-  if (code.length != 6) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please enter a 6-digit code'), backgroundColor: Colors.red),
-    );
-    return;
-  }
-
+Future<void> _checkEmailVerification() async {
+  // Firebase doesn't use email verification codes
+  // Instead, Firebase sends a verification link to email
+  // This method should be replaced with checking if email is verified
+  
   setState(() => _isLoading = true);
   try {
-    final auth = ClerkAuth.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+    
+    if (user == null) {
+      throw Exception('No user signed in');
+    }
 
-    debugPrint('=== STARTING EMAIL VERIFICATION ===');
-    debugPrint('Code entered: $code');
-    debugPrint('Current signup status before verify: ${auth.client?.signUp?.status}');
-
-    // 2) Verify the email code - only pass strategy and code
-    await auth.attemptSignUp(
-      strategy: Strategy.emailCode,
-      code: code,
-    );
-
-    debugPrint('=== AFTER EMAIL CODE VERIFICATION ===');
-    debugPrint('Status: ${auth.client?.signUp?.status}');
-    debugPrint('IsSignedIn: ${auth.isSignedIn}');
-    debugPrint('=====================================');
+    debugPrint('=== CHECKING EMAIL VERIFICATION ===');
+    
+    // Reload user to get latest email verification status
+    await user.reload();
+    final updatedUser = FirebaseAuth.instance.currentUser;
+    
+    debugPrint('Email verified: ${updatedUser?.emailVerified}');
 
     if (mounted) {
-      // Only proceed if verification was successful (user is signed in)
-      if (auth.isSignedIn) {
+      // Check if email is verified
+      if (updatedUser?.emailVerified == true) {
         // Close verification dialog on success
         Navigator.of(context).pop();
         _codeDialogOpen = false;
         
-        debugPrint('Signup complete! Syncing user to Convex...');
+        debugPrint('Email verified! Syncing user to Convex...');
+        
+        // Use the name from the controller for consistent handling
+        final parts = _nameController.text.trim().split(' ');
+        final firstName = parts.isNotEmpty ? parts.first : '';
+        final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
         
         // Sync user to Convex
         final convexService = Provider.of<ConvexService>(context, listen: false);
-        final user = auth.client?.user;
         
-        if (user != null) {
-          // Set the userId for dream operations
-          convexService.setUserId(user.id);
-          
-          await convexService.upsertUser(
-            clerkId: user.id,
-            email: user.email ?? '',
-            firstName: user.firstName,
-            lastName: user.lastName,
-            profileImageUrl: user.profileImageUrl,
-          );
-        }
+        // Set the userId for dream operations
+        convexService.setUserId(updatedUser!.uid);
+        
+        await convexService.upsertUser(
+          authId: updatedUser.uid,
+          email: updatedUser.email ?? '',
+          firstName: firstName.isNotEmpty ? firstName : null,
+          lastName: lastName.isNotEmpty ? lastName : null,
+          profileImageUrl: updatedUser.photoURL,
+        );
         
         debugPrint('User sync complete! Navigating to home...');
         Navigator.of(context).pushAndRemoveUntil(
@@ -493,10 +497,9 @@ Future<void> _verifyEmailCode(String code) async {
           (route) => false,
         );
       } else {
-        // Verification failed but no exception was thrown
-        // Show error message but keep dialog open
+        // Email not yet verified
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid verification code. Please try again.'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Email not yet verified. Please check your email and try again.'), backgroundColor: Colors.orange),
         );
       }
     }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../theme/app_colors.dart';
 import '../services/subscription_service.dart';
-import '../services/auth_service.dart';
+import '../services/firebase_auth_service.dart';
 import '../services/convex_service.dart';
 import '../widgets/paywall_dialog.dart';
 import 'auth/login_screen.dart';
@@ -61,8 +60,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileCard(BuildContext context) {
-    final auth = ClerkAuth.of(context);
-    final user = auth.user;
+    final authService = Provider.of<FirebaseAuthService>(context, listen: false);
+    final user = authService.currentUser;
     
     return Consumer<SubscriptionService>(
       builder: (context, subscriptionService, child) {
@@ -97,7 +96,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            user?.firstName ?? 'User',
+            user?.displayName ?? user?.email?.split('@')[0] ?? 'User',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -405,7 +404,7 @@ class ProfileScreen extends StatelessWidget {
 
   void _handleDeleteAccount(BuildContext context) {
     // Get services before showing dialog to avoid Provider context issues
-    final auth = ClerkAuth.of(context);
+    final authService = Provider.of<FirebaseAuthService>(context, listen: false);
     final convexService = Provider.of<ConvexService>(context, listen: false);
     final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
     
@@ -429,12 +428,12 @@ class ProfileScreen extends StatelessWidget {
                 try {
                   debugPrint('=== STARTING ACCOUNT DELETION ===');
                   
-                  if (auth.user == null) {
+                  if (authService.currentUser == null) {
                     _showSnackBar(context, 'No user logged in', isError: true);
                     return;
                   }
 
-                  final clerkId = auth.user!.id;
+                  final firebaseUid = authService.currentUser!.uid;
                   
                   // Show loading dialog
                   showDialog(
@@ -456,24 +455,8 @@ class ProfileScreen extends StatelessWidget {
                   );
 
                   // 1. First delete from Convex (dreams and user data)
-                  String? clerkSecretKey;
-                  try {
-                    clerkSecretKey = dotenv.env['CLERK_SECRET_KEY'];
-                    debugPrint('Clerk secret key found: ${clerkSecretKey != null && clerkSecretKey.isNotEmpty}');
-                  } catch (e) {
-                    debugPrint('Error accessing environment variables: $e');
-                    if (context.mounted) Navigator.pop(context); // Close loading dialog
-                    _showSnackBar(context, 'Configuration error: Unable to access environment variables', isError: true);
-                    return;
-                  }
                   
-                  if (clerkSecretKey == null || clerkSecretKey.isEmpty) {
-                    if (context.mounted) Navigator.pop(context); // Close loading dialog
-                    _showSnackBar(context, 'Configuration error: Clerk secret key not found', isError: true);
-                    return;
-                  }
-                  
-                  final convexResult = await convexService.deleteAccount(clerkId, clerkSecretKey);
+                  final convexResult = await convexService.deleteAccount(firebaseUid, null);
                   if (convexResult == null) {
                     if (context.mounted) Navigator.pop(context); // Close loading dialog
                     _showSnackBar(context, 'Failed to delete user data. Please try again.', isError: true);
@@ -485,8 +468,8 @@ class ProfileScreen extends StatelessWidget {
 
                   // 3. Sign out locally
                   try {
-                    // Sign out from Clerk
-                    await auth.signOut();
+                    // Sign out from Firebase
+                    await authService.signOut();
                   } catch (e) {
                     if (context.mounted) Navigator.pop(context); // Close loading dialog
                     _showSnackBar(context, 'Failed to sign out: $e', isError: true);
@@ -555,11 +538,11 @@ class ProfileScreen extends StatelessWidget {
               navigator.pop(); // Close dialog
               debugPrint('Dialog closed');
               
-              final auth = ClerkAuth.of(context);
+              final authService = Provider.of<FirebaseAuthService>(context, listen: false);
               final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
               
               debugPrint('Starting logout process...');
-              debugPrint('User before logout: ${auth.user?.id}');
+              debugPrint('User before logout: ${authService.currentUser?.uid}');
               
               try {
                 // Clear subscription service data first (this handles RevenueCat logout)
@@ -572,16 +555,16 @@ class ProfileScreen extends StatelessWidget {
               }
               
               try {
-                // Then sign out from Clerk if user is authenticated
-                if (auth.user != null) {
-                  debugPrint('Signing out from Clerk...');
-                  await auth.signOut();
-                  debugPrint('Clerk sign out completed');
+                // Then sign out from Firebase if user is authenticated
+                if (authService.currentUser != null) {
+                  debugPrint('Signing out from Firebase...');
+                  await authService.signOut();
+                  debugPrint('Firebase sign out completed');
                 } else {
-                  debugPrint('User already null, skipping Clerk signout');
+                  debugPrint('User already null, skipping Firebase signout');
                 }
               } catch (e) {
-                debugPrint('Error signing out from Clerk: $e');
+                debugPrint('Error signing out from Firebase: $e');
                 // Continue with navigation even if this fails
               }
               

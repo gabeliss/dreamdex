@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
 import '../services/dream_service.dart';
 import '../models/dream.dart';
@@ -64,10 +64,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: ClerkAuthBuilder(
-          signedInBuilder: (context, authState) {
-            final user = authState.user;
-            final userName = user?.firstName ?? 
+        child: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            final user = snapshot.data;
+            final userName = user?.displayName ?? 
                              user?.email?.split('@')[0] ?? 
                              'Dreamer';
             
@@ -92,10 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ],
             );
-          },
-          signedOutBuilder: (context, authState) {
-            // This shouldn't be reached since HomeScreen is only shown when signed in
-            return SizedBox.shrink();
           },
         ),
       ),

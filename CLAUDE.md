@@ -1,9 +1,13 @@
 # CLAUDE.md
 
 # CRITICAL REMINDER - PROJECT NAME AND BUNDLE ID
+
 # PROJECT NAME: dreamdex (NOT dreamdx!!!)
+
 # DIRECTORY: /Users/gabeliss/Desktop/dreamdex/
+
 # BUNDLE ID: com.example.dreamdex (NOT dreamdx!!!)
+
 # NEVER use "dreamdx" - it is ALWAYS "dreamdex"
 
 # IMPORTANT - the root directory is dreamdex, not dreamdx. Use dreamdex in your commands when reading/updating files.
@@ -39,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Frontend**: Flutter with Dart
 - **Backend**: Convex DB for real-time data sync
-- **Authentication**: Clerk for user management
+- **Authentication**: Firebase for user management
 - **AI Services**: Google AI Studio for dream analysis and image generation
 - **State Management**: Provider pattern with ChangeNotifier services
 
@@ -53,7 +57,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Core Services:**
 
 - `DreamService`: Manages CRUD operations for dreams, handles offline/online sync
-- `AuthService`: Handles Clerk authentication, user session management
+- `AuthService`: Handles Firebase authentication, user session management
 - `ConvexService`: Real-time database operations with Convex backend
 - `AIService`: Integrates with Google AI Studio for analysis and image generation
 - `SpeechService`: Speech-to-text functionality for voice dream recording
@@ -81,7 +85,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Environment Setup:**
 
-- `.env` file required with `GOOGLE_AI_STUDIO_API_KEY`, `CONVEX_URL`, `CLERK_PUBLISHABLE_KEY`
+- `.env` file required with `GOOGLE_AI_STUDIO_API_KEY`, `CONVEX_URL`
 - Font assets (Poppins family) required in `assets/fonts/`
 - Permissions configured for microphone access (speech-to-text)
 

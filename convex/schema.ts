@@ -43,7 +43,7 @@ export default defineSchema({
     }),
 
   users: defineTable({
-    clerkId: v.string(),
+    authId: v.string(), // Firebase UID
     email: v.string(),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -61,6 +61,6 @@ export default defineSchema({
     totalDreams: v.number(),
     lastLoginAt: v.optional(v.number()),
   })
-    .index("by_clerk_id", ["clerkId"])
+    .index("by_auth_id", ["authId"])
     .index("by_email", ["email"]),
 });

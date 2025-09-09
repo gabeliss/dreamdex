@@ -77,7 +77,7 @@ export const create = mutation({
     // Update user's total dreams count
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.userId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.userId))
       .first();
     
     if (user) {
@@ -150,7 +150,7 @@ export const remove = mutation({
     // Update user's total dreams count
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.userId))
+      .withIndex("by_auth_id", (q) => q.eq("authId", args.userId))
       .first();
     
     if (user && user.totalDreams > 0) {

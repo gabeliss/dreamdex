@@ -26,7 +26,8 @@ dependencies:
   path_provider: ^2.1.1
   cached_network_image: ^3.3.1
   convex_flutter: ^1.2.0
-  clerk_flutter: ^0.0.3
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
   dio: ^5.3.2
   url_launcher: ^6.2.1
   purchases_flutter: ^9.5.0
