@@ -33,13 +33,24 @@ class ConvexService extends ChangeNotifier {
 
   void setUserId(String userId) {
     _userId = userId;
+    debugPrint('✅ SECURITY: ConvexService userId set to: $_userId');
+    notifyListeners();
+  }
+
+  void clearUserId() {
+    debugPrint('🔒 SECURITY: Clearing ConvexService userId (was: $_userId)');
+    _userId = null;
     notifyListeners();
   }
 
   Future<List<Dream>> getDreams() async {
     if (!_isInitialized || _userId == null) {
+      debugPrint('❌ SECURITY: Cannot fetch dreams - ConvexService not initialized or userId is null');
+      debugPrint('_isInitialized: $_isInitialized, _userId: $_userId');
       return [];
     }
+    
+    debugPrint('✅ SECURITY: Fetching dreams for user: $_userId');
 
     try {
       final response = await _dio.post(

@@ -118,6 +118,11 @@ class _AuthGateState extends State<AuthGate> {
           );
         }
 
+        debugPrint('=== AUTHGATE BUILD ===');
+        debugPrint('AuthService initialized: ${authService.isInitialized}');
+        debugPrint('AuthService authenticated: ${authService.isAuthenticated}');
+        debugPrint('Current user: ${authService.currentUser?.email}');
+        
         if (authService.isAuthenticated) {
           final user = authService.currentUser!;
           debugPrint('=== AUTHGATE EVALUATION ===');
@@ -134,15 +139,17 @@ class _AuthGateState extends State<AuthGate> {
           
           debugPrint('AuthGate: User verified, showing MainNavigation');
           
-          // Set userId in ConvexService and SubscriptionService for authenticated users
+          // CRITICAL: Set userId IMMEDIATELY to prevent security issues
+          final convexService = Provider.of<ConvexService>(context, listen: false);
+          final dreamService = Provider.of<DreamService>(context, listen: false);
+          final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+          
+          // Set userId synchronously before UI loads
+          convexService.setUserId(user.uid);
+          debugPrint('Set userId in ConvexService: ${user.uid}');
+          
+          // Set up other services asynchronously
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            final convexService = Provider.of<ConvexService>(context, listen: false);
-            final dreamService = Provider.of<DreamService>(context, listen: false);
-            final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
-            
-            convexService.setUserId(user.uid);
-            debugPrint('Set userId in ConvexService: ${user.uid}');
-            
             // Initialize and set user in subscription service
             subscriptionService.initializeService().then((_) {
               subscriptionService.setUserId(user.uid);

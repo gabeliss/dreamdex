@@ -8,6 +8,7 @@ import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/convex_service.dart';
+import '../../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -238,10 +239,11 @@ class _LoginScreenState extends State<LoginScreen> {
             
             // Check verification status after refresh
             if (refreshedUser != null && refreshedUser.emailVerified) {
-              debugPrint('Email verified! Navigating directly to MainNavigation.');
-              // Force navigation since AuthGate Consumer isn't rebuilding
+              debugPrint('Email verified! Navigating back to AuthGate.');
+              debugPrint('AuthGate will handle navigation based on email verification status.');
+              // Navigate back to AuthGate so it can set userId and then show MainNavigation
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const MainNavigation()),
+                MaterialPageRoute(builder: (context) => const AuthGate()),
                 (route) => false,
               );
             } else if (refreshedUser != null && !refreshedUser.emailVerified) {

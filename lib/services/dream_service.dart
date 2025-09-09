@@ -29,11 +29,29 @@ class DreamService extends ChangeNotifier {
   
   void _onAuthChanged() {
     if (_authService.isAuthenticated) {
-      _loadDreams();
+      // Wait for ConvexService to have userId set before loading dreams
+      _waitForUserIdAndLoadDreams();
     } else {
+      debugPrint('🔒 SECURITY: User signed out - clearing dreams list');
       _dreams.clear();
       notifyListeners();
     }
+  }
+  
+  Future<void> _waitForUserIdAndLoadDreams() async {
+    debugPrint('⏳ SECURITY: Waiting for ConvexService userId to be set...');
+    
+    // Wait up to 3 seconds for userId to be set
+    for (int i = 0; i < 30; i++) {
+      if (_convexService.userId != null) {
+        debugPrint('✅ SECURITY: ConvexService userId found: ${_convexService.userId}');
+        await _loadDreams();
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    
+    debugPrint('❌ SECURITY: Timeout waiting for ConvexService userId');
   }
   
   @override
@@ -44,7 +62,18 @@ class DreamService extends ChangeNotifier {
 
   Future<void> _loadDreams() async {
     // Only load dreams if user is authenticated
-    if (!_authService.isAuthenticated) return;
+    if (!_authService.isAuthenticated) {
+      debugPrint('❌ SECURITY: Cannot load dreams - user not authenticated');
+      return;
+    }
+    
+    // Additional security check - ensure ConvexService has userId set
+    if (_convexService.userId == null) {
+      debugPrint('❌ SECURITY: Cannot load dreams - ConvexService userId not set');
+      return;
+    }
+    
+    debugPrint('✅ SECURITY: Loading dreams for authenticated user: ${_convexService.userId}');
     
     _isLoading = true;
     notifyListeners();
@@ -52,6 +81,7 @@ class DreamService extends ChangeNotifier {
     try {
       _dreams = await _convexService.getDreams();
       _dreams.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      debugPrint('✅ SECURITY: Successfully loaded ${_dreams.length} dreams');
     } catch (e) {
       debugPrint('Error loading dreams: $e');
     }

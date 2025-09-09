@@ -68,9 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
             final user = snapshot.data;
-            final userName = user?.displayName ?? 
+            final fullName = user?.displayName ?? 
                              user?.email?.split('@')[0] ?? 
                              'Dreamer';
+            final userName = fullName.split(' ')[0];
             
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,

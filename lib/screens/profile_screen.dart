@@ -540,6 +540,7 @@ class ProfileScreen extends StatelessWidget {
               
               final authService = Provider.of<FirebaseAuthService>(context, listen: false);
               final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+              final convexService = Provider.of<ConvexService>(context, listen: false);
               
               debugPrint('Starting logout process...');
               debugPrint('User before logout: ${authService.currentUser?.uid}');
@@ -553,6 +554,10 @@ class ProfileScreen extends StatelessWidget {
                 debugPrint('Error clearing subscription data: $e');
                 // Continue with logout even if this fails
               }
+              
+              // CRITICAL: Clear ConvexService userId to prevent security issues
+              debugPrint('Clearing ConvexService userId...');
+              convexService.clearUserId();
               
               try {
                 // Then sign out from Firebase if user is authenticated
