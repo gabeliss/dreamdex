@@ -152,22 +152,35 @@ class FirebaseAuthService extends ChangeNotifier {
   }
 
   Future<bool> sendPasswordResetEmail(String email) async {
-    if (!_isInitialized) return false;
+    debugPrint('=== FIREBASE AUTH SERVICE - SEND PASSWORD RESET ===');
+    debugPrint('Email: $email');
+    debugPrint('Service initialized: $_isInitialized');
+    
+    if (!_isInitialized) {
+      debugPrint('Service not initialized, returning false');
+      return false;
+    }
 
+    debugPrint('Setting loading state to true');
     _isLoading = true;
     notifyListeners();
 
     try {
+      debugPrint('Calling Firebase Auth sendPasswordResetEmail');
       await _auth.sendPasswordResetEmail(email: email);
+      debugPrint('Firebase Auth sendPasswordResetEmail completed successfully');
       debugPrint('Password reset email sent to: $email');
       return true;
     } on FirebaseAuthException catch (e) {
       debugPrint('Firebase Auth error: ${e.code} - ${e.message}');
+      debugPrint('Firebase Auth error details: $e');
       return false;
     } catch (e) {
       debugPrint('Error sending password reset email: $e');
+      debugPrint('Error type: ${e.runtimeType}');
       return false;
     } finally {
+      debugPrint('Setting loading state to false');
       _isLoading = false;
       notifyListeners();
     }

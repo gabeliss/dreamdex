@@ -82,7 +82,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
                         }
-                        if (!RegExp(r'^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}\$').hasMatch(value)) {
+                        if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                           return 'Please enter a valid email';
                         }
                         return null;
@@ -178,19 +178,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _sendPasswordResetEmail() async {
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('=== FORGOT PASSWORD RESET ===');
+    debugPrint('Email: ${_emailController.text.trim()}');
+    
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('Form validation failed');
+      return;
+    }
 
+    debugPrint('Form validation passed, setting loading state');
     setState(() => _isLoading = true);
 
     try {
       final authService = Provider.of<FirebaseAuthService>(context, listen: false);
+      debugPrint('Got auth service, calling sendPasswordResetEmail');
       
       final success = await authService.sendPasswordResetEmail(_emailController.text.trim());
+      debugPrint('sendPasswordResetEmail returned: $success');
       
       if (mounted) {
         if (success) {
+          debugPrint('Password reset email sent successfully');
           setState(() => _isEmailSent = true);
         } else {
+          debugPrint('Password reset email failed (returned false)');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to send reset email. Please check your email address and try again.'),
@@ -223,6 +234,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } finally {
       if (mounted) {
+        debugPrint('Setting loading state to false');
         setState(() => _isLoading = false);
       }
     }
