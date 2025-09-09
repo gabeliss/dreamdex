@@ -150,23 +150,16 @@ class ProfileScreen extends StatelessWidget {
     return Consumer<SubscriptionService>(
       builder: (context, subscriptionService, child) {
         final settingsItems = [
-          if (!subscriptionService.isPremium)
-            {
-              'title': 'Upgrade to Premium',
-              'subtitle': 'Unlock all features',
-              'icon': Icons.star,
-              'onTap': () => _handleUpgradeToPremium(context),
-              'isPremium': true,
-            },
       {
-        'title': subscriptionService.isPremium ? 'Manage Subscription' : 'View Subscription Plans',
+        'title': subscriptionService.isPremium ? 'Manage Subscription' : 'Upgrade to Premium',
         'subtitle': subscriptionService.isPremium 
             ? 'View and manage your subscription' 
-            : 'See available premium plans',
-        'icon': Icons.subscriptions,
+            : 'Unlock all features',
+        'icon': subscriptionService.isPremium ? Icons.subscriptions : Icons.star,
         'onTap': () => subscriptionService.isPremium 
             ? _handleManageSubscription() 
             : _handleUpgradeToPremium(context),
+        'isPremium': !subscriptionService.isPremium,
       },
       {
         'title': 'Restore Purchases',
