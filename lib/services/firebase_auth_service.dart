@@ -3,20 +3,34 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService extends ChangeNotifier {
+  static final FirebaseAuthService _instance = FirebaseAuthService._internal();
+  
+  factory FirebaseAuthService() {
+    return _instance;
+  }
+  
+  FirebaseAuthService._internal() {
+    _initializeAuth();
+  }
+  
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _currentUser;
   bool _isLoading = false;
   bool _isInitialized = false;
 
-  User? get currentUser => _currentUser ?? _auth.currentUser;
+  User? get currentUser {
+    if (_currentUser != null) {
+      debugPrint("FirebaseAuthService: Returning _currentUser (verified=${_currentUser?.emailVerified})");
+      return _currentUser;
+    } else {
+      debugPrint("FirebaseAuthService: Returning _auth.currentUser (verified=${_auth.currentUser?.emailVerified})");
+      return _auth.currentUser;
+    }
+  }
   bool get isLoading => _isLoading;
   bool get isAuthenticated => currentUser != null;
   bool get isSignedIn => currentUser != null;
   bool get isInitialized => _isInitialized;
-
-  FirebaseAuthService() {
-    _initializeAuth();
-  }
 
   Future<void> _initializeAuth() async {
     try {
@@ -104,15 +118,14 @@ class FirebaseAuthService extends ChangeNotifier {
         await credential.user?.updateDisplayName(displayName);
       }
       
-      // Send email verification
-      await credential.user?.sendEmailVerification();
+      // Note: Email verification will be sent from the signup screen
       
       _currentUser = credential.user;
       debugPrint('Sign up successful: ${_currentUser?.email}');
       return true;
     } on FirebaseAuthException catch (e) {
       debugPrint('Firebase Auth error: ${e.code} - ${e.message}');
-      return false;
+      rethrow; // Let the signup screen handle the specific error
     } catch (e) {
       debugPrint('Error signing up: $e');
       return false;
@@ -164,6 +177,21 @@ class FirebaseAuthService extends ChangeNotifier {
     // Firebase handles email verification automatically
     // This method is kept for compatibility
     debugPrint('Email verification handled automatically by Firebase');
+  }
+
+  Future<void> refreshUser() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        await user.reload();
+        _currentUser = _auth.currentUser;
+        debugPrint('User refreshed: ${_currentUser?.email}, verified: ${_currentUser?.emailVerified}');
+        debugPrint('FirebaseAuthService: Notifying listeners after user refresh');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error refreshing user: $e');
+    }
   }
 
   Future<bool> deleteAccount() async {

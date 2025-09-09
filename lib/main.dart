@@ -106,8 +106,10 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
+    // Force rebuild by adding a listener to the same service the login screen uses
     return Consumer<FirebaseAuthService>(
       builder: (context, authService, child) {
+        debugPrint('AuthGate Consumer: Using authService instance: ${authService.hashCode}');
         if (!authService.isInitialized) {
           return const Scaffold(
             body: Center(
@@ -118,9 +120,19 @@ class _AuthGateState extends State<AuthGate> {
 
         if (authService.isAuthenticated) {
           final user = authService.currentUser!;
+          debugPrint('=== AUTHGATE EVALUATION ===');
           debugPrint('Firebase Auth: User is signed in');
           debugPrint('User: ${user.email}');
           debugPrint('User ID: ${user.uid}');
+          debugPrint('Email verified: ${user.emailVerified}');
+          
+          // Require email verification
+          if (!user.emailVerified) {
+            debugPrint('AuthGate: Email not verified, showing welcome screen');
+            return const WelcomeScreen();
+          }
+          
+          debugPrint('AuthGate: User verified, showing MainNavigation');
           
           // Set userId in ConvexService and SubscriptionService for authenticated users
           WidgetsBinding.instance.addPostFrameCallback((_) {

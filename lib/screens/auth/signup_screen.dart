@@ -399,42 +399,69 @@ Future<void> _handleSignup() async {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _codeDialogOpen = false;
-                setState(() => _isLoading = false);
-              },
-              child: const Text('Cancel'),
+            // Bottom row with properly spaced buttons
+            Row(
+              children: [
+                // Cancel button (secondary, left-aligned)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _codeDialogOpen = false;
+                    setState(() => _isLoading = false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                const Spacer(),
+                // Resend button (secondary, right side)
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Verification email sent again!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to resend email. Please try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Resend Email'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await FirebaseAuth.instance.currentUser?.sendEmailVerification();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Verification email sent again!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to resend email. Please try again.'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Resend Email'),
-            ),
-            ElevatedButton(
-              onPressed: () => _checkEmailVerification(),
-              child: const Text('I\'ve Verified'),
+            const SizedBox(height: 8),
+            // Primary action button (full width)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _checkEmailVerification(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryPurple,
+                  foregroundColor: AppColors.cloudWhite,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'I\'ve Verified',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ],
         );

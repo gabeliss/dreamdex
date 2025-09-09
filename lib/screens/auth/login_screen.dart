@@ -227,28 +227,31 @@ class _LoginScreenState extends State<LoginScreen> {
         if (success) {
           debugPrint('Firebase sign in successful!');
           
-          // Sync user to Convex
-          final convexService = Provider.of<ConvexService>(context, listen: false);
           final user = authService.currentUser;
           
+          // Reload user to get latest email verification status
           if (user != null) {
-            // Set the userId for dream operations
-            convexService.setUserId(user.uid);
+            debugPrint('Login screen: Calling refreshUser() on authService instance: ${authService.hashCode}');
+            await authService.refreshUser();
             
-            await convexService.upsertUser(
-              authId: user.uid, // Using Firebase UID
-              email: user.email ?? '',
-              firstName: user.displayName?.split(' ').first,
-              lastName: user.displayName?.split(' ').skip(1).join(' '),
-              profileImageUrl: user.photoURL,
-            );
+            final refreshedUser = authService.currentUser;
+            
+            // Check verification status after refresh
+            if (refreshedUser != null && refreshedUser.emailVerified) {
+              debugPrint('Email verified! Navigating directly to MainNavigation.');
+              // Force navigation since AuthGate Consumer isn't rebuilding
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const MainNavigation()),
+                (route) => false,
+              );
+            } else if (refreshedUser != null && !refreshedUser.emailVerified) {
+              debugPrint('Email not verified, skipping Convex sync');
+              // Show email verification dialog
+              _showEmailVerificationNeededDialog(refreshedUser.email ?? '');
+            }
           }
           
-          debugPrint('User sync complete! Navigating to home...');
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const MainNavigation()),
-            (route) => false,
-          );
+          debugPrint('AuthGate will handle navigation based on email verification status.');
         } else {
           // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
@@ -329,5 +332,147 @@ class _LoginScreenState extends State<LoginScreen> {
         transitionDuration: const Duration(milliseconds: 300),
       ),
     );
+  }
+
+  void _showEmailVerificationNeededDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Email Verification Required'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.email_outlined,
+                size: 48,
+                color: AppColors.primaryPurple,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Please verify your email address before signing in.',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'We sent a verification link to $email. If you haven\'t received it or it has expired, you can request a new one.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            // Bottom row with properly spaced buttons
+            Row(
+              children: [
+                // Cancel button (secondary, left-aligned)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                const Spacer(),
+                // Resend button (secondary, right side)
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Verification email sent! Please check your inbox.'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.of(context).pop();
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to resend email. Please try again later.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Resend Email'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Primary action button (full width)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _checkEmailVerificationInLogin(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryPurple,
+                  foregroundColor: AppColors.cloudWhite,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'I\'ve Verified',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _checkEmailVerificationInLogin() async {
+    try {
+      final authService = Provider.of<FirebaseAuthService>(context, listen: false);
+      
+      // Refresh user to get latest email verification status
+      await authService.refreshUser();
+      final user = authService.currentUser;
+      
+      if (mounted) {
+        if (user?.emailVerified == true) {
+          // Close dialog and navigate directly
+          Navigator.of(context).pop();
+          debugPrint('Email verified! Navigating directly to MainNavigation.');
+          // Force navigation since AuthGate Consumer isn't rebuilding  
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainNavigation()),
+            (route) => false,
+          );
+        } else {
+          // Email not yet verified
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email not yet verified. Please check your email and try again.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Email verification check failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Verification check failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
