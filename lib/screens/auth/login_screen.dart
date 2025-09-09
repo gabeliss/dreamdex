@@ -6,6 +6,7 @@ import 'package:clerk_auth/src/models/client/strategy.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'signup_screen.dart';
+import 'forgot_password_screen.dart';
 import '../../services/convex_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -144,14 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      // TODO: Implement forgot password
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Forgot password feature coming soon!'),
-                        ),
-                      );
-                    },
+                    onPressed: () => _navigateToForgotPassword(),
                     child: Text(
                       'Forgot Password?',
                       style: TextStyle(
@@ -319,6 +313,26 @@ class _LoginScreenState extends State<LoginScreen> {
           return SlideTransition(
             position: animation.drive(
               Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                  .chain(CurveTween(curve: Curves.easeInOut)),
+            ),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
+  }
+
+  void _navigateToForgotPassword() {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const ForgotPasswordScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: animation.drive(
+              Tween(begin: const Offset(0.0, 1.0), end: Offset.zero)
                   .chain(CurveTween(curve: Curves.easeInOut)),
             ),
             child: child,

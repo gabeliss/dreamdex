@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamdex - Your AI-Powered Dream Journal</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #6B46C1;
+            --secondary-purple: #9333EA;
+            --light-purple: #DDD6FE;
+            --ultra-light-purple: #F3F0FF;
+            --dream-blue: #4F46E5;
+            --light-blue: #E0E7FF;
+            --star-yellow: #FBBF24;
+            --cloud-white: #FEFEFE;
+            --fog-grey: #F9FAFB;
+            --mist-grey: #E5E7EB;
+            --shadow-grey: #6B7280;
+            --night-grey: #374151;
+            --dream-pink: #EC4899;
+            --light-pink: #FCE7F3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: var(--night-grey);
+            background: var(--cloud-white);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--cloud-white);
+            box-shadow: 0 2px 20px rgba(107, 70, 193, 0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-purple);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--shadow-grey);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-purple);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            color: var(--cloud-white);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(107, 70, 193, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 80px;
+            background: linear-gradient(135deg, var(--ultra-light-purple), var(--light-blue));
+            text-align: center;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--night-grey);
+            margin-bottom: 16px;
+        }
+
+        .hero .subtitle {
+            font-size: 20px;
+            color: var(--shadow-grey);
+            margin-bottom: 32px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-features {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .hero-feature {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: var(--dream-blue);
+        }
+
+        .app-preview {
+            margin-top: 60px;
+            position: relative;
+        }
+
+        .phone-mockup {
+            width: 300px;
+            height: 600px;
+            background: var(--cloud-white);
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(107, 70, 193, 0.2);
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--dream-blue), var(--dream-pink));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cloud-white);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            background: var(--cloud-white);
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--night-grey);
+        }
+
+        .features-subtitle {
+            text-align: center;
+            color: var(--shadow-grey);
+            font-size: 18px;
+            margin-bottom: 60px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: var(--cloud-white);
+            padding: 32px 24px;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(107, 70, 193, 0.1);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(107, 70, 193, 0.15);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: var(--cloud-white);
+        }
+
+        .feature-icon.ai { background: linear-gradient(135deg, var(--dream-blue), var(--dream-pink)); }
+        .feature-icon.voice { background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple)); }
+        .feature-icon.analysis { background: linear-gradient(135deg, var(--star-yellow), #EAB308); }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--night-grey);
+        }
+
+        .feature-card p {
+            color: var(--shadow-grey);
+            line-height: 1.6;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            text-align: center;
+            color: var(--cloud-white);
+        }
+
+        .cta h2 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            font-size: 18px;
+            margin-bottom: 32px;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .store-btn {
+            background: var(--cloud-white);
+            color: var(--primary-purple);
+            padding: 16px 32px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.3s;
+        }
+
+        .store-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .store-btn i {
+            font-size: 20px;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--night-grey);
+            color: var(--cloud-white);
+            padding: 60px 0 30px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--cloud-white);
+        }
+
+        .footer-section p,
+        .footer-section a {
+            color: var(--mist-grey);
+            text-decoration: none;
+            line-height: 1.8;
+        }
+
+        .footer-section a:hover {
+            color: var(--light-purple);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 8px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--shadow-grey);
+            padding-top: 30px;
+            text-align: center;
+            color: var(--mist-grey);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero .subtitle {
+                font-size: 18px;
+            }
+
+            .hero-features {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .phone-mockup {
+                width: 250px;
+                height: 500px;
+            }
+
+            .features h2,
+            .cta h2 {
+                font-size: 28px;
+            }
+
+            .store-btn {
+                padding: 12px 24px;
+                font-size: 14px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .animate-delay-1 { animation-delay: 0.2s; animation-fill-mode: both; }
+        .animate-delay-2 { animation-delay: 0.4s; animation-fill-mode: both; }
+        .animate-delay-3 { animation-delay: 0.6s; animation-fill-mode: both; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="container">
+            <div class="nav">
+                <div class="logo">Dreamdex</div>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#support">Support</a></li>
+                    <li><a href="privacy.html">Privacy</a></li>
+                    <li><a href="terms.html">Terms</a></li>
+                </ul>
+                <a href="#download" class="download-btn">Download App</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1 class="animate-fade-in">Your AI-Powered Dream Journal</h1>
+            <p class="subtitle animate-fade-in animate-delay-1">
+                Capture, analyze, and understand your dreams with the help of advanced AI. 
+                Discover patterns, meanings, and insights in your nightly adventures.
+            </p>
+            
+            <div class="hero-features animate-fade-in animate-delay-2">
+                <div class="hero-feature">
+                    <i class="fas fa-brain"></i>
+                    <span>AI Analysis</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-microphone"></i>
+                    <span>Voice Recording</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dream Insights</span>
+                </div>
+                <div class="hero-feature">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Private & Secure</span>
+                </div>
+            </div>
+
+            <div class="app-preview animate-fade-in animate-delay-3">
+                <div class="phone-mockup">
+                    <div class="phone-screen">
+                        <div>
+                            <i class="fas fa-moon" style="font-size: 48px; margin-bottom: 16px;"></i>
+                            <br>
+                            Dreamdex App
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2>Powerful Features for Dream Exploration</h2>
+            <p class="features-subtitle">
+                Everything you need to capture, analyze, and understand your dreams in one beautiful app.
+            </p>
+
+            <div class="features-grid">
+                <div class="feature-card animate-fade-in">
+                    <div class="feature-icon ai">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI Dream Analysis</h3>
+                    <p>Get deep insights into your dreams with advanced AI that understands symbolism, emotions, and patterns in your subconscious experiences.</p>
+                </div>
+
+                <div class="feature-card animate-fade-in animate-delay-1">
+                    <div class="feature-icon voice">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <h3>Voice Recording</h3>
+                    <p>Capture your dreams instantly upon waking with voice recording. No need to fumble with typing in the dark.</p>
+                </div>
+
+                <div class="feature-card animate-fade-in animate-delay-2">
+                    <div class="feature-icon analysis">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Dream Statistics</h3>
+                    <p>Track your dream patterns, types, and frequency with beautiful charts and insights that reveal your sleep story.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta" id="download">
+        <div class="container">
+            <h2>Start Your Dream Journey Today</h2>
+            <p>Join thousands of dreamers who are already exploring their subconscious with Dreamdx</p>
+            
+            <div class="cta-buttons">
+                <a href="#" class="store-btn">
+                    <i class="fab fa-apple"></i>
+                    Download for iOS
+                </a>
+                <a href="#" class="store-btn">
+                    <i class="fab fa-google-play"></i>
+                    Download for Android
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Dreamdex</h3>
+                    <p>Your AI-powered companion for dream exploration and understanding. Discover the hidden meanings in your nightly adventures.</p>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="mailto:support@dreamdex.com">Contact Support</a></li>
+                        <li><a href="#" id="support">Help Center</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Legal</h3>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms of Service</a></li>
+                        <li><a href="#data">Data Protection</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 Dreamdex. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple scroll animation trigger
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all animated elements
+        document.querySelectorAll('.animate-fade-in').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
+            observer.observe(el);
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Dreamdex</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #6B46C1;
+            --secondary-purple: #9333EA;
+            --light-purple: #DDD6FE;
+            --ultra-light-purple: #F3F0FF;
+            --dream-blue: #4F46E5;
+            --light-blue: #E0E7FF;
+            --cloud-white: #FEFEFE;
+            --fog-grey: #F9FAFB;
+            --mist-grey: #E5E7EB;
+            --shadow-grey: #6B7280;
+            --night-grey: #374151;
+            --dream-pink: #EC4899;
+            --light-pink: #FCE7F3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: var(--night-grey);
+            background: var(--cloud-white);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--cloud-white);
+            box-shadow: 0 2px 20px rgba(107, 70, 193, 0.1);
+            padding: 16px 0;
+            margin-bottom: 40px;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-purple);
+            text-decoration: none;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+            color: var(--cloud-white);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.3s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .content {
+            background: var(--cloud-white);
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(107, 70, 193, 0.1);
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--night-grey);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .page-subtitle {
+            color: var(--shadow-grey);
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-purple);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--night-grey);
+            margin-bottom: 12px;
+            margin-top: 20px;
+        }
+
+        .section p {
+            color: var(--shadow-grey);
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+
+        .section ul {
+            color: var(--shadow-grey);
+            padding-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .section li {
+            margin-bottom: 8px;
+        }
+
+        .highlight-box {
+            background: var(--ultra-light-purple);
+            border: 1px solid var(--light-purple);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .highlight-box h3 {
+            color: var(--primary-purple);
+            margin-bottom: 12px;
+        }
+
+        .contact-info {
+            background: linear-gradient(135deg, var(--ultra-light-purple), var(--light-blue));
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .contact-info h3 {
+            color: var(--primary-purple);
+            margin-bottom: 16px;
+        }
+
+        .contact-info a {
+            color: var(--dream-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .contact-info a:hover {
+            color: var(--primary-purple);
+        }
+
+        .last-updated {
+            background: var(--fog-grey);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            color: var(--shadow-grey);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--night-grey);
+            color: var(--cloud-white);
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer a {
+            color: var(--light-purple);
+            text-decoration: none;
+            margin: 0 16px;
+        }
+
+        .footer a:hover {
+            color: var(--cloud-white);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .content {
+                padding: 24px;
+                border-radius: 16px;
+            }
+
+            .page-title {
+                font-size: 28px;
+            }
+
+            .section h2 {
+                font-size: 20px;
+            }
+
+            .contact-info,
+            .highlight-box {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="landing.html" class="logo">Dreamdex</a>
+                <a href="landing.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="content">
+            <h1 class="page-title">Privacy Policy</h1>
+            <p class="page-subtitle">Your privacy and the security of your dreams matter to us</p>
+
+            <div class="last-updated">
+                <strong>Last updated:</strong> September 9, 2024
+            </div>
+
+            <div class="highlight-box">
+                <h3><i class="fas fa-shield-alt" style="color: var(--primary-purple);"></i> Your Privacy Commitment</h3>
+                <p>At Dreamdex, we believe your dreams are deeply personal. We are committed to protecting your privacy and ensuring that your dream journal remains secure and private. This policy explains how we collect, use, and protect your information.</p>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-info-circle"></i> Information We Collect</h2>
+                
+                <h3>Personal Information</h3>
+                <p>When you create an account with Dreamdex, we collect:</p>
+                <ul>
+                    <li>Name and email address (through Clerk authentication)</li>
+                    <li>Profile information you choose to provide</li>
+                    <li>Account preferences and settings</li>
+                </ul>
+
+                <h3>Dream Content</h3>
+                <p>The core of our service involves collecting your dream-related information:</p>
+                <ul>
+                    <li>Dream descriptions and journal entries</li>
+                    <li>Voice recordings (converted to text, audio not stored)</li>
+                    <li>Dream tags, categories, and metadata</li>
+                    <li>AI-generated analysis and insights</li>
+                </ul>
+
+                <h3>Usage Information</h3>
+                <p>To improve our service, we collect:</p>
+                <ul>
+                    <li>App usage patterns and feature interactions</li>
+                    <li>Device information and technical data</li>
+                    <li>Error logs and performance metrics</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-cogs"></i> How We Use Your Information</h2>
+                
+                <p>Your information is used exclusively to provide and improve the Dreamdx service:</p>
+                <ul>
+                    <li><strong>Dream Analysis:</strong> AI processing of your dreams to provide insights and patterns</li>
+                    <li><strong>Service Delivery:</strong> Storing, syncing, and retrieving your dream journal across devices</li>
+                    <li><strong>Personalization:</strong> Customizing your experience and recommendations</li>
+                    <li><strong>Support:</strong> Providing customer support and troubleshooting</li>
+                    <li><strong>Improvement:</strong> Analyzing usage patterns to enhance features (anonymized data only)</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-share-alt"></i> Information Sharing</h2>
+                
+                <p><strong>We do not sell, rent, or share your personal information or dream content with third parties</strong>, except in the following limited circumstances:</p>
+                
+                <h3>Service Providers</h3>
+                <ul>
+                    <li><strong>Convex:</strong> Database hosting and real-time sync</li>
+                    <li><strong>Clerk:</strong> Authentication and user management</li>
+                    <li><strong>Google AI:</strong> Dream analysis processing (content is processed but not stored by Google)</li>
+                    <li><strong>RevenueCat:</strong> Subscription and payment processing</li>
+                </ul>
+
+                <h3>Legal Requirements</h3>
+                <p>We may disclose information if required by law, court order, or to protect our rights and the safety of our users.</p>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-lock"></i> Data Security</h2>
+                
+                <p>We implement industry-standard security measures to protect your information:</p>
+                <ul>
+                    <li>End-to-end encryption for data transmission</li>
+                    <li>Secure database storage with access controls</li>
+                    <li>Regular security audits and updates</li>
+                    <li>Limited employee access on a need-to-know basis</li>
+                    <li>Two-factor authentication support</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-user-check"></i> Your Rights and Choices</h2>
+                
+                <p>You have complete control over your data:</p>
+                
+                <h3>Access and Control</h3>
+                <ul>
+                    <li>View, edit, or delete any dream entry</li>
+                    <li>Export your dream data at any time</li>
+                    <li>Modify account settings and preferences</li>
+                    <li>Request a copy of all your stored data</li>
+                </ul>
+
+                <h3>Account Deletion</h3>
+                <p>You can permanently delete your account and all associated data through the app settings. This action:</p>
+                <ul>
+                    <li>Removes all dream entries and personal information</li>
+                    <li>Cancels any active subscriptions</li>
+                    <li>Cannot be reversed once completed</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-clock"></i> Data Retention</h2>
+                
+                <p>We retain your information as follows:</p>
+                <ul>
+                    <li><strong>Active Accounts:</strong> Data is retained while your account is active</li>
+                    <li><strong>Inactive Accounts:</strong> Data may be deleted after 2 years of inactivity (with prior notice)</li>
+                    <li><strong>Deleted Accounts:</strong> All data is permanently removed within 30 days</li>
+                    <li><strong>Legal Obligations:</strong> Some data may be retained longer if required by law</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-child"></i> Children's Privacy</h2>
+                
+                <p>Dreamdex is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we discover we have collected such information, we will delete it immediately.</p>
+            </div>
+
+            <div class="section">
+                <h2><i class="fas fa-edit"></i> Changes to This Policy</h2>
+                
+                <p>We may update this privacy policy from time to time. When we do:</p>
+                <ul>
+                    <li>We will notify you through the app and by email</li>
+                    <li>The "Last updated" date will be revised</li>
+                    <li>Continued use of the app constitutes acceptance of changes</li>
+                    <li>Significant changes will require explicit consent</li>
+                </ul>
+            </div>
+
+            <div class="contact-info">
+                <h3><i class="fas fa-envelope"></i> Contact Us</h3>
+                <p>If you have questions about this privacy policy or your data, please contact us:</p>
+                <p>
+                    <strong>Email:</strong> <a href="mailto:privacy@dreamdx.com">privacy@dreamdx.com</a><br>
+                    <strong>Support:</strong> <a href="mailto:support@dreamdx.com">support@dreamdx.com</a>
+                </p>
+                <p style="margin-top: 16px; font-size: 14px; color: var(--shadow-grey);">
+                    We aim to respond to all privacy inquiries within 48 hours.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Dreamdex. All rights reserved.</p>
+            <div style="margin-top: 16px;">
+                <a href="landing.html">Home</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms of Service</a>
+                <a href="mailto:support@dreamdx.com">Support</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
