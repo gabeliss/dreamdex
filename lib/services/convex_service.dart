@@ -251,6 +251,51 @@ class ConvexService extends ChangeNotifier {
     }
   }
 
+  Future<bool> toggleFavorite(String dreamId) async {
+    debugPrint('=== CONVEX TOGGLE FAVORITE ===');
+    debugPrint('Dream ID: $dreamId');
+    debugPrint('User ID: $_userId');
+    
+    if (!_isInitialized || _userId == null) {
+      debugPrint('❌ ConvexService not initialized or userId null');
+      return false;
+    }
+
+    try {
+      final response = await _dio.post(
+        '$_convexUrl/api/mutation',
+        data: {
+          'path': 'dreams:toggleFavorite',
+          'args': {
+            'id': dreamId, 
+            'userId': _userId,
+          },
+        },
+      );
+
+      debugPrint('Toggle favorite response status: ${response.statusCode}');
+      debugPrint('Toggle favorite response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        // Check if the response contains an error
+        if (response.data is Map<String, dynamic> && 
+            response.data['status'] == 'error') {
+          debugPrint('❌ Convex API returned error: ${response.data['errorMessage']}');
+          return false;
+        } else {
+          debugPrint('✅ Dream favorite status toggled successfully');
+          return true;
+        }
+      } else {
+        debugPrint('❌ Unexpected response status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ Error toggling favorite in Convex: $e');
+      return false;
+    }
+  }
+
   Future<List<Dream>> searchDreams(String query) async {
     if (!_isInitialized || _userId == null || query.isEmpty) {
       return [];

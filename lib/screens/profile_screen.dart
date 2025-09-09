@@ -175,12 +175,6 @@ class ProfileScreen extends StatelessWidget {
         'onTap': () => _handleRestorePurchases(context, subscriptionService),
       },
       {
-        'title': 'Theme',
-        'subtitle': 'Change app appearance',
-        'icon': Icons.palette,
-        'onTap': () => _showThemeDialog(context),
-      },
-      {
         'title': 'Support',
         'subtitle': 'Get help and contact us',
         'icon': Icons.support_agent,
@@ -197,13 +191,6 @@ class ProfileScreen extends StatelessWidget {
         'subtitle': 'View terms of service',
         'icon': Icons.article,
         'onTap': () => _openUrl('https://your-terms-url.com'),
-      },
-      {
-        'title': 'Delete Account',
-        'subtitle': 'Permanently delete your account',
-        'icon': Icons.delete_forever,
-        'onTap': () => _handleDeleteAccount(context),
-        'isDestructive': true,
       },
       {
         'title': 'Sign Out',
@@ -297,6 +284,60 @@ class ProfileScreen extends StatelessWidget {
             ),
           );
         }).toList(),
+        // Danger Zone section
+        const SizedBox(height: 32),
+        Text(
+          'Danger Zone',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.red,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.delete_forever,
+                color: Colors.red,
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'Delete Account',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.red,
+              ),
+            ),
+            subtitle: const Text(
+              'Permanently delete your account',
+              style: TextStyle(
+                color: Colors.red,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios, 
+              size: 16,
+              color: Colors.red,
+            ),
+            onTap: () => _handleDeleteAccount(context),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
         ],
       );
       },
@@ -348,43 +389,6 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
-  void _showThemeDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Choose Theme'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.light_mode),
-              title: const Text('Light'),
-              onTap: () {
-                Navigator.pop(context);
-                _showSnackBar(context, 'Light theme selected', isError: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.dark_mode),
-              title: const Text('Dark'),
-              onTap: () {
-                Navigator.pop(context);
-                _showSnackBar(context, 'Dark theme selected', isError: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('System'),
-              onTap: () {
-                Navigator.pop(context);
-                _showSnackBar(context, 'System theme selected', isError: false);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _handleContactSupport() async {
     const email = 'support@dreamdex.com'; // Replace with your support email

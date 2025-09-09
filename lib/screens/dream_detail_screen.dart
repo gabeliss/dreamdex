@@ -66,6 +66,12 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
   }
 
   Widget _buildAppBar(DreamService dreamService) {
+    // Get the current dream state from the service to reflect real-time changes
+    final currentDream = dreamService.dreams.firstWhere(
+      (d) => d.id == widget.dream.id,
+      orElse: () => widget.dream,
+    );
+
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -79,13 +85,13 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.dream.title,
+                  currentDream.title,
                   style: Theme.of(context).textTheme.titleLarge,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  DateFormat('MMM dd, yyyy • hh:mm a').format(widget.dream.createdAt),
+                  DateFormat('MMM dd, yyyy • hh:mm a').format(currentDream.createdAt),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -93,10 +99,10 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
           ),
           IconButton(
             icon: Icon(
-              widget.dream.isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: widget.dream.isFavorite ? AppColors.dreamPink : AppColors.shadowGrey,
+              currentDream.isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: currentDream.isFavorite ? AppColors.dreamPink : AppColors.shadowGrey,
             ),
-            onPressed: () => dreamService.toggleFavorite(widget.dream.id),
+            onPressed: () => dreamService.toggleFavorite(currentDream.id),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
@@ -136,6 +142,7 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
           color: AppColors.primaryPurple,
           borderRadius: BorderRadius.circular(10),
         ),
+        indicatorSize: TabBarIndicatorSize.tab,
         labelColor: AppColors.cloudWhite,
         unselectedLabelColor: AppColors.shadowGrey,
         labelStyle: const TextStyle(fontWeight: FontWeight.w600),

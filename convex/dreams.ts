@@ -250,6 +250,27 @@ export const getFavorites = query({
   },
 });
 
+// Mutation to toggle favorite status
+export const toggleFavorite = mutation({
+  args: { 
+    id: v.id("dreams"), 
+    userId: v.string() 
+  },
+  handler: async (ctx, args) => {
+    const dream = await ctx.db.get(args.id);
+    
+    if (!dream || dream.userId !== args.userId) {
+      throw new Error("Dream not found or access denied");
+    }
+    
+    await ctx.db.patch(args.id, {
+      isFavorite: !dream.isFavorite,
+    });
+    
+    return !dream.isFavorite; // Return the new favorite status
+  },
+});
+
 // Mutation to generate upload URL for dream images
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {

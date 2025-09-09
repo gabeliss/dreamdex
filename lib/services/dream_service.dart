@@ -100,9 +100,35 @@ class DreamService extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(String dreamId) async {
-    final dream = _dreams.firstWhere((d) => d.id == dreamId);
-    final updatedDream = dream.copyWith(isFavorite: !dream.isFavorite);
-    await updateDream(updatedDream);
+    try {
+      // First update the local state optimistically
+      final index = _dreams.indexWhere((d) => d.id == dreamId);
+      if (index == -1) return;
+
+      final dream = _dreams[index];
+      final updatedDream = dream.copyWith(isFavorite: !dream.isFavorite);
+      _dreams[index] = updatedDream;
+      notifyListeners();
+
+      // Then sync with backend
+      final success = await _convexService.toggleFavorite(dreamId);
+      if (!success) {
+        // Revert on failure
+        _dreams[index] = dream;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error toggling favorite: $e');
+      // Find the dream again and revert
+      final index = _dreams.indexWhere((d) => d.id == dreamId);
+      if (index != -1) {
+        final currentDream = _dreams[index];
+        final revertedDream = currentDream.copyWith(isFavorite: !currentDream.isFavorite);
+        _dreams[index] = revertedDream;
+        notifyListeners();
+      }
+      rethrow;
+    }
   }
 
   Future<void> updateDreamAnalysis(String dreamId, Map<String, dynamic> analysisData) async {
