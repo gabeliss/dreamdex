@@ -390,7 +390,7 @@ Future<void> _handleSignup() async {
               ),
               const SizedBox(height: 12),
               Text(
-                'Please check your email and click the verification link to complete your registration.',
+                'Please check your email and click the verification link to complete your registration. If you do not see the email in your inbox, please check your spam folder.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey[600],
                 ),

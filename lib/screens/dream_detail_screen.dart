@@ -5,7 +5,10 @@ import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../models/dream.dart';
 import '../services/dream_service.dart';
+import '../services/subscription_service.dart';
+import '../services/ai_service.dart';
 import '../widgets/dream_image_widget.dart';
+import '../widgets/paywall_dialog.dart';
 
 class DreamDetailScreen extends StatefulWidget {
   final Dream dream;
@@ -22,10 +25,13 @@ class DreamDetailScreen extends StatefulWidget {
 class _DreamDetailScreenState extends State<DreamDetailScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  bool _isGeneratingAnalysis = false;
+  Dream? _currentDream;
 
   @override
   void initState() {
     super.initState();
+    _currentDream = widget.dream;
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -223,34 +229,113 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
   }
 
   Widget _buildAnalysisTab() {
-    final analysis = widget.dream.analysis;
+    final analysis = _currentDream?.analysis;
     
     if (analysis == null) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 100),
-              CircularProgressIndicator(
-                color: AppColors.primaryPurple,
+      return Consumer<SubscriptionService>(
+        builder: (context, subscriptionService, child) {
+          final isPremium = subscriptionService.isPremium;
+          
+          if (_isGeneratingAnalysis) {
+            // Show loading state when generating analysis
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 100),
+                    CircularProgressIndicator(
+                      color: AppColors.primaryPurple,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Analyzing your dream...',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Our AI is studying your dream content to provide insights',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Analyzing your dream...',
-                style: Theme.of(context).textTheme.titleLarge,
+            ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
+          }
+          
+          // Show empty state with generate button
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 100),
+                  Icon(
+                    isPremium ? Icons.psychology : Icons.lock,
+                    size: 64,
+                    color: isPremium ? AppColors.primaryPurple : Colors.grey,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    isPremium ? 'No Analysis Yet' : 'Analysis Unavailable',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isPremium 
+                        ? 'Generate an AI analysis to understand your dream\'s meaning'
+                        : 'Dream analysis is a premium feature',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: isPremium 
+                          ? () => _generateAnalysis()
+                          : null,
+                      icon: Icon(
+                        isPremium ? Icons.auto_awesome : Icons.lock,
+                        color: isPremium ? AppColors.cloudWhite : Colors.grey,
+                      ),
+                      label: Text(
+                        'Generate Dream Analysis',
+                        style: TextStyle(
+                          color: isPremium ? AppColors.cloudWhite : Colors.grey,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isPremium ? AppColors.primaryPurple : Colors.grey.shade300,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (!isPremium) ...[
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => showPaywall(context, PremiumFeature.aiAnalysis),
+                      child: Text(
+                        'Tap to upgrade and unlock dream analysis',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.primaryPurple,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Our AI is studying your dream content to provide insights',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
+            ),
+          ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
+        },
+      );
     }
     
     return SingleChildScrollView(
@@ -660,5 +745,70 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
         )).toList(),
       ],
     );
+  }
+
+  Future<void> _generateAnalysis() async {
+    setState(() {
+      _isGeneratingAnalysis = true;
+    });
+
+    try {
+      final aiService = Provider.of<AIService>(context, listen: false);
+      final dreamService = Provider.of<DreamService>(context, listen: false);
+      
+      final analysisData = await aiService.analyzeDream(_currentDream!.content);
+      
+      if (analysisData != null && mounted) {
+        debugPrint('✅ AI analysis received: ${analysisData.keys}');
+        // Update the dream with analysis results
+        await dreamService.updateDreamAnalysis(_currentDream!.id, analysisData);
+        debugPrint('✅ Dream analysis saved to database successfully');
+        
+        // Update the current dream with the new analysis data
+        if (mounted) {
+          setState(() {
+            _currentDream = _currentDream!.copyWith(
+              analysis: DreamAnalysis.fromJson(analysisData),
+            );
+          });
+        }
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dream analysis generated successfully!'),
+              backgroundColor: AppColors.primaryPurple,
+            ),
+          );
+        }
+      } else {
+        debugPrint('❌ Dream analysis failed - no data returned');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to generate analysis. Please try again.'),
+              backgroundColor: AppColors.errorRed,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error during dream analysis: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error generating analysis. Please try again.'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingAnalysis = false;
+        });
+      }
+    }
   }
 }

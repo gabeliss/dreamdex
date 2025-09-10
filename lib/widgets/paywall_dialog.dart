@@ -111,6 +111,7 @@ class _PaywallDialogState extends State<PaywallDialog> {
                       const SizedBox(height: 8),
                       Text(
                         'Unlock $_featureTitle',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
                           fontSize: 16,

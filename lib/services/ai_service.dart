@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'convex_service.dart';
 
@@ -30,13 +31,11 @@ class AIService extends ChangeNotifier {
 
   Future<void> _loadApiKey() async {
     try {
-      final envContent = await rootBundle.loadString('.env');
-      final lines = envContent.split('\n');
-      for (final line in lines) {
-        if (line.startsWith('GOOGLE_AI_STUDIO_API_KEY=')) {
-          _apiKey = line.split('=')[1].trim();
-          break;
-        }
+      _apiKey = dotenv.env['GOOGLE_AI_STUDIO_API_KEY'];
+      if (_apiKey != null && _apiKey!.isNotEmpty) {
+        debugPrint('✅ Google AI Studio API key loaded successfully');
+      } else {
+        debugPrint('❌ Google AI Studio API key not found in environment');
       }
     } catch (e) {
       debugPrint('Error loading API key: $e');

@@ -8,6 +8,8 @@ import '../services/dream_service.dart';
 import '../services/speech_service.dart';
 import '../services/ai_service.dart';
 import '../services/convex_service.dart';
+import '../services/subscription_service.dart';
+import '../widgets/paywall_dialog.dart';
 
 class AddDreamScreen extends StatefulWidget {
   const AddDreamScreen({super.key});
@@ -168,19 +170,117 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Capture Your Dream',
-          style: Theme.of(context).textTheme.displayMedium,
-        ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
-        const SizedBox(height: 8),
-        Text(
-          'Record your dream while it\'s fresh in your memory',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideX(begin: -0.2),
-      ],
+    return Consumer<SubscriptionService>(
+      builder: (context, subscriptionService, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Capture Your Dream',
+              style: Theme.of(context).textTheme.displayMedium,
+            ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
+            const SizedBox(height: 8),
+            Text(
+              'Record your dream while it\'s fresh in your memory',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideX(begin: -0.2),
+            
+            // Free user progress bar
+            if (!subscriptionService.isPremium) ...[
+              const SizedBox(height: 20),
+              _buildFreeDreamProgress(subscriptionService),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFreeDreamProgress(SubscriptionService subscriptionService) {
+    return FutureBuilder<int>(
+      future: subscriptionService.getFreeDreamCount(),
+      builder: (context, snapshot) {
+        final currentCount = snapshot.data ?? 0;
+        final maxCount = SubscriptionService.freeDreamLimit;
+        final progress = currentCount / maxCount;
+        
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.cloudWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.shadowGrey.withOpacity(0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Free Dreams Used',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '$currentCount / $maxCount',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: currentCount >= maxCount 
+                          ? AppColors.errorRed 
+                          : AppColors.primaryPurple,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: AppColors.shadowGrey.withOpacity(0.3),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    currentCount >= maxCount 
+                        ? AppColors.errorRed 
+                        : AppColors.primaryPurple,
+                  ),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                currentCount >= maxCount
+                    ? 'Upgrade to Premium for unlimited dreams and AI analysis!'
+                    : 'Upgrade to Premium for unlimited dreams and AI analysis',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.shadowGrey,
+                ),
+              ),
+              if (currentCount >= maxCount) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => showPaywall(context, PremiumFeature.unlimitedDreams),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryPurple,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Upgrade Now',
+                      style: TextStyle(color: AppColors.cloudWhite),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ).animate().fadeIn(duration: 500.ms, delay: 150.ms).slideY(begin: 0.2);
+      },
     );
   }
 
@@ -416,38 +516,67 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           ).animate().fadeIn(duration: 500.ms).scale(),
           const SizedBox(height: 16),
         ],
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: (_contentController.text.trim().isEmpty || aiService.isGeneratingImage)
-                ? null
-                : () => _generateDreamImage(aiService),
-            icon: aiService.isGeneratingImage
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryPurple,
-                      strokeWidth: 2,
+        Consumer<SubscriptionService>(
+          builder: (context, subscriptionService, child) {
+            final isPremium = subscriptionService.isPremium;
+            final isButtonDisabled = _contentController.text.trim().isEmpty || 
+                                   aiService.isGeneratingImage ||
+                                   !isPremium;
+            
+            return Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: isButtonDisabled
+                        ? null
+                        : () => _generateDreamImage(aiService),
+                    icon: aiService.isGeneratingImage
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              color: isPremium ? AppColors.primaryPurple : Colors.grey,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Icon(
+                            isPremium ? Icons.auto_awesome : Icons.lock,
+                            color: isPremium ? AppColors.primaryPurple : Colors.grey,
+                          ),
+                    label: Text(
+                      aiService.isGeneratingImage
+                          ? 'Generating Image...'
+                          : _generatedImageData != null
+                              ? 'Regenerate Image'
+                              : 'Generate Dream Image'
                     ),
-                  )
-                : Icon(Icons.auto_awesome),
-            label: Text(
-              aiService.isGeneratingImage
-                  ? 'Generating Image...'
-                  : _generatedImageData != null
-                      ? 'Regenerate Image'
-                      : 'Generate Dream Image',
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryPurple,
-              side: BorderSide(color: AppColors.primaryPurple),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            ),
-          ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isPremium ? AppColors.primaryPurple : Colors.grey,
+                      side: BorderSide(color: isPremium ? AppColors.primaryPurple : Colors.grey),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    ),
+                  ),
+                ),
+                if (!isPremium) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => showPaywall(context, PremiumFeature.imageGeneration),
+                    child: Text(
+                      'Tap to upgrade and unlock image generation',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.primaryPurple,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ],
     ).animate().fadeIn(duration: 500.ms, delay: 550.ms).slideY(begin: 0.2);
@@ -561,6 +690,43 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       return;
     }
 
+    // Check if free user has reached dream limit
+    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    if (!subscriptionService.isPremium) {
+      final canCreate = await subscriptionService.canCreateDream();
+      if (!canCreate) {
+        if (mounted) {
+          // Show limit reached dialog with upgrade option
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Dream Limit Reached'),
+              content: const Text(
+                'You\'ve reached your free limit of 15 dreams. Upgrade to Premium for unlimited dreams and AI analysis!',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showPaywall(context, PremiumFeature.unlimitedDreams);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryPurple,
+                  ),
+                  child: const Text('Upgrade Now'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -572,6 +738,11 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     );
 
     final savedDream = await dreamService.addDream(dream);
+
+    // Increment dream count for free users when dream is successfully saved
+    if (savedDream != null) {
+      await subscriptionService.incrementDreamCount();
+    }
 
     // If we have generated image data and the dream was saved, store the image in Convex
     if (savedDream != null && _generatedImageData != null) {
@@ -598,24 +769,30 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       }
     }
 
-    // Automatically analyze the dream content
+    // Automatically analyze the dream content (premium users only)
     if (savedDream != null) {
-      try {
-        if (!mounted) return;
-        final aiService = Provider.of<AIService>(context, listen: false);
-        final analysisData = await aiService.analyzeDream(_contentController.text.trim());
-        
-        if (analysisData != null) {
-          debugPrint('✅ AI analysis received: ${analysisData.keys}');
-          // Update the dream with analysis results
-          await dreamService.updateDreamAnalysis(savedDream.id, analysisData);
-          debugPrint('✅ Dream analysis saved to database successfully');
-        } else {
-          debugPrint('❌ Dream analysis failed - no data returned');
+      final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+      
+      if (subscriptionService.isPremium) {
+        try {
+          if (!mounted) return;
+          final aiService = Provider.of<AIService>(context, listen: false);
+          final analysisData = await aiService.analyzeDream(_contentController.text.trim());
+          
+          if (analysisData != null) {
+            debugPrint('✅ AI analysis received: ${analysisData.keys}');
+            // Update the dream with analysis results
+            await dreamService.updateDreamAnalysis(savedDream.id, analysisData);
+            debugPrint('✅ Dream analysis saved to database successfully');
+          } else {
+            debugPrint('❌ Dream analysis failed - no data returned');
+          }
+        } catch (e) {
+          debugPrint('Error during dream analysis: $e');
+          // Analysis failure shouldn't prevent dream saving success
         }
-      } catch (e) {
-        debugPrint('Error during dream analysis: $e');
-        // Analysis failure shouldn't prevent dream saving success
+      } else {
+        debugPrint('🔒 AI analysis skipped - premium feature for free user');
       }
     }
 

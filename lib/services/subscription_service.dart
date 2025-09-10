@@ -25,9 +25,9 @@ class SubscriptionService extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // Premium feature limits for free users
-  static const int freeDreamAnalysisLimit = 3;
-  static const int freeImageGenerationLimit = 2;
-  static const int freeDreamsPerMonthLimit = 10;
+  static const int freeDreamAnalysisLimit = 0; // AI analysis is premium only
+  static const int freeImageGenerationLimit = 0; // Image generation is premium only
+  static const int freeDreamLimit = 15; // Total dream limit for free users
 
   /// Initialize RevenueCat with API keys
   /// Call this in main() before runApp()
@@ -279,9 +279,51 @@ class SubscriptionService extends ChangeNotifier {
   bool canUseFeature(PremiumFeature feature) {
     if (_isPremium) return true;
 
-    // For free users, implement usage limits
-    // This would typically check against stored usage counts
-    return false; // Simplified for now
+    // For free users, check feature-specific limits
+    switch (feature) {
+      case PremiumFeature.aiAnalysis:
+        return false; // AI analysis is premium only
+      case PremiumFeature.imageGeneration:
+        return false; // Image generation is premium only
+      case PremiumFeature.unlimitedDreams:
+        return false; // Unlimited dreams is premium only
+    }
+  }
+
+  /// Check if free user can create more dreams
+  Future<bool> canCreateDream() async {
+    if (_isPremium) return true;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final dreamCount = prefs.getInt('free_user_dream_count') ?? 0;
+    
+    return dreamCount < freeDreamLimit;
+  }
+
+  /// Get current dream count for free users
+  Future<int> getFreeDreamCount() async {
+    if (_isPremium) return 0; // Premium users don't have limits
+    
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('free_user_dream_count') ?? 0;
+  }
+
+  /// Increment dream count for free users
+  Future<void> incrementDreamCount() async {
+    if (_isPremium) return; // Premium users don't have limits
+    
+    final prefs = await SharedPreferences.getInstance();
+    final currentCount = prefs.getInt('free_user_dream_count') ?? 0;
+    await prefs.setInt('free_user_dream_count', currentCount + 1);
+    
+    notifyListeners(); // Notify UI to update progress
+  }
+
+  /// Reset dream count (call when user upgrades to premium)
+  Future<void> resetDreamCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('free_user_dream_count');
+    notifyListeners();
   }
 
   /// Get the primary offering (usually the default subscription)
