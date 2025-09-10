@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,17 +20,8 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
   
-  // Load environment variables
-  try {
-    await dotenv.load(fileName: ".env.local");
-  } catch (e) {
-    debugPrint("Error loading .env.local file: $e");
-    try {
-      await dotenv.load(fileName: ".env");
-    } catch (e2) {
-      debugPrint("Error loading .env file: $e2");
-    }
-  }
+  // Load environment variables based on build mode
+  await dotenv.load(fileName: kReleaseMode ? ".env" : ".env.local");
   
   // Initialize RevenueCat
   final revenueCatApiKey = dotenv.env['REVENUECAT_API_KEY'];

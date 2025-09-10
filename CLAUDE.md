@@ -19,7 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Core Flutter Commands:**
 
 - `flutter pub get` - Install dependencies
-- `flutter run` - Run the app (add `-d chrome` for web, `-d ios` for iOS)
+- `flutter run` - Run the app in development mode (uses `.env.local`)
+- `flutter run --release` - Run the app in production mode (uses `.env`)
 - `flutter run --hot` - Run with hot reload enabled
 - `flutter test` - Run unit tests
 - `flutter analyze` - Run static analysis/linting
@@ -85,9 +86,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Environment Setup:**
 
-- `.env` file required with `GOOGLE_AI_STUDIO_API_KEY`, `CONVEX_URL`
+- `.env.local` - Development environment (dev Convex URL)
+- `.env` - Production environment (prod Convex URL)
+- Environment files automatically selected based on build mode
 - Font assets (Poppins family) required in `assets/fonts/`
 - Permissions configured for microphone access (speech-to-text)
+- Required env vars: `GOOGLE_AI_STUDIO_API_KEY`, `CONVEX_URL`, `REVENUECAT_API_KEY`
 
 **Testing Strategy:**
 

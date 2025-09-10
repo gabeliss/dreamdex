@@ -5,7 +5,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SubscriptionService extends ChangeNotifier {
-  static const String _premiumEntitlementId = 'premium';
+  static const String _premiumEntitlementId = 'Pro';
   static const String _lastSubscriptionCheckKey = 'last_subscription_check';
   static const Duration _cacheValidityDuration = Duration(hours: 1);
 
@@ -106,6 +106,16 @@ class SubscriptionService extends ChangeNotifier {
       _customerInfo = await Purchases.getCustomerInfo();
       final wasPremium = _isPremium;
       _isPremium = _customerInfo?.entitlements.active.containsKey(_premiumEntitlementId) ?? false;
+
+      // Debug logging for premium status verification
+      final entitlements = _customerInfo?.entitlements.active;
+      debugPrint('=== SUBSCRIPTION DEBUG INFO ===');
+      debugPrint('Is Premium: $_isPremium');
+      debugPrint('Premium Entitlement ID: $_premiumEntitlementId');
+      debugPrint('Active entitlements: ${entitlements?.keys.toList()}');
+      debugPrint('Premium entitlement active: ${entitlements?.containsKey(_premiumEntitlementId)}');
+      debugPrint('Customer Info: $_customerInfo');
+      debugPrint('===============================');
 
       // Cache the result
       final prefs = await SharedPreferences.getInstance();

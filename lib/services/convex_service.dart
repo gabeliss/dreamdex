@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/dream.dart';
@@ -34,7 +35,10 @@ class ConvexService extends ChangeNotifier {
   void setUserId(String userId) {
     _userId = userId;
     debugPrint('✅ SECURITY: ConvexService userId set to: $_userId');
-    notifyListeners();
+    // Defer notification to avoid calling during build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void clearUserId() {

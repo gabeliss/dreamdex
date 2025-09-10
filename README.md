@@ -102,8 +102,15 @@ Before running the app, make sure you have:
    ```
 
 6. **Run the app**
+
+   **Development mode** (uses `.env.local`):
    ```bash
    flutter run
+   ```
+
+   **Production mode** (uses `.env`):
+   ```bash
+   flutter run --release
    ```
 
 ## 🌐 Website Development
@@ -211,10 +218,39 @@ dreamdex/
 
 ### Environment Variables
 
-Create a `.env` file in the root directory with:
+The app uses automatic environment selection:
 
+- **`.env.local`** - Development environment (uses dev Convex deployment)
+- **`.env`** - Production environment (uses prod Convex deployment)
+
+Create both files in the root directory:
+
+**`.env.local`** (development):
 ```env
+CONVEX_DEPLOYMENT=dev:your-dev-deployment
+CONVEX_URL=https://your-dev-deployment.convex.cloud
 GOOGLE_AI_STUDIO_API_KEY=your_api_key_here
+REVENUECAT_API_KEY=your_revenuecat_key_here
+```
+
+**`.env`** (production):
+```env
+CONVEX_DEPLOYMENT=prod:your-prod-deployment
+CONVEX_URL=https://your-prod-deployment.convex.cloud
+GOOGLE_AI_STUDIO_API_KEY=your_api_key_here
+REVENUECAT_API_KEY=your_revenuecat_key_here
+```
+
+### Convex Backend Setup
+
+**Development:**
+```bash
+npx convex dev    # Start dev server and watch for changes
+```
+
+**Production deployment:**
+```bash
+npx convex deploy # Deploy to production
 ```
 
 ### API Keys Setup
