@@ -107,15 +107,17 @@ class SubscriptionService extends ChangeNotifier {
       final wasPremium = _isPremium;
       _isPremium = _customerInfo?.entitlements.active.containsKey(_premiumEntitlementId) ?? false;
 
-      // Debug logging for premium status verification
-      final entitlements = _customerInfo?.entitlements.active;
-      debugPrint('=== SUBSCRIPTION DEBUG INFO ===');
-      debugPrint('Is Premium: $_isPremium');
-      debugPrint('Premium Entitlement ID: $_premiumEntitlementId');
-      debugPrint('Active entitlements: ${entitlements?.keys.toList()}');
-      debugPrint('Premium entitlement active: ${entitlements?.containsKey(_premiumEntitlementId)}');
-      debugPrint('Customer Info: $_customerInfo');
-      debugPrint('===============================');
+      // Debug logging for premium status verification (only if status changed)
+      if (wasPremium != _isPremium) {
+        final entitlements = _customerInfo?.entitlements.active;
+        debugPrint('=== SUBSCRIPTION DEBUG INFO ===');
+        debugPrint('Is Premium: $_isPremium');
+        debugPrint('Premium Entitlement ID: $_premiumEntitlementId');
+        debugPrint('Active entitlements: ${entitlements?.keys.toList()}');
+        debugPrint('Premium entitlement active: ${entitlements?.containsKey(_premiumEntitlementId)}');
+        debugPrint('Customer Info: $_customerInfo');
+        debugPrint('===============================');
+      }
 
       // Cache the result
       final prefs = await SharedPreferences.getInstance();
@@ -230,6 +232,12 @@ class SubscriptionService extends ChangeNotifier {
 
   /// Set user ID for RevenueCat (call when user logs in)
   Future<void> setUserId(String userId) async {
+    // Prevent duplicate initialization for same user
+    if (_customerInfo != null && _customerInfo!.originalAppUserId == userId) {
+      debugPrint('SubscriptionService: User ID already set for $userId, skipping');
+      return;
+    }
+    
     try {
       await Purchases.logIn(userId);
       await _refreshCustomerInfo();

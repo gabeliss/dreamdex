@@ -95,10 +95,13 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
+// Global flag to prevent re-initialization across widget rebuilds
+bool _globalServiceInitialized = false;
+
 class _AuthGateState extends State<AuthGate> {
+
   @override
   Widget build(BuildContext context) {
-    // Force rebuild by adding a listener to the same service the login screen uses
     return Consumer<FirebaseAuthService>(
       builder: (context, authService, child) {
         debugPrint('AuthGate Consumer: Using authService instance: ${authService.hashCode}');
@@ -131,39 +134,46 @@ class _AuthGateState extends State<AuthGate> {
           
           debugPrint('AuthGate: User verified, showing MainNavigation');
           
-          // CRITICAL: Set userId IMMEDIATELY to prevent security issues
-          final convexService = Provider.of<ConvexService>(context, listen: false);
-          final dreamService = Provider.of<DreamService>(context, listen: false);
-          final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
-          
-          // Set userId synchronously before UI loads
-          convexService.setUserId(user.uid);
-          debugPrint('Set userId in ConvexService: ${user.uid}');
-          
-          // Set up other services asynchronously
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            // Initialize and set user in subscription service
-            subscriptionService.initializeService().then((_) {
-              subscriptionService.setUserId(user.uid);
-              debugPrint('Initialized subscription service for user: ${user.uid}');
+          // Initialize services only once per user session using global flag
+          if (!_globalServiceInitialized) {
+            _globalServiceInitialized = true;
+            
+            // Get services
+            final convexService = Provider.of<ConvexService>(context, listen: false);
+            final dreamService = Provider.of<DreamService>(context, listen: false);
+            final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+            
+            // Set userId synchronously before UI loads
+            convexService.setUserId(user.uid);
+            debugPrint('Set userId in ConvexService: ${user.uid}');
+            
+            // Set up other services asynchronously
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // Initialize and set user in subscription service
+              subscriptionService.initializeService().then((_) {
+                subscriptionService.setUserId(user.uid);
+                debugPrint('Initialized subscription service for user: ${user.uid}');
+              });
+              
+              // Sync user to Convex backend
+              convexService.upsertUser(
+                authId: user.uid,
+                email: user.email ?? '',
+                firstName: user.displayName?.split(' ').first,
+                lastName: user.displayName?.split(' ').skip(1).join(' '),
+                profileImageUrl: user.photoURL,
+              );
+              
+              // Refresh dreams after setting userId
+              dreamService.refreshDreams();
+              debugPrint('Refreshing dreams after authentication');
             });
-            
-            // Sync user to Convex backend
-            convexService.upsertUser(
-              authId: user.uid, // Using Firebase UID as identifier
-              email: user.email ?? '',
-              firstName: user.displayName?.split(' ').first,
-              lastName: user.displayName?.split(' ').skip(1).join(' '),
-              profileImageUrl: user.photoURL,
-            );
-            
-            // Refresh dreams after setting userId
-            dreamService.refreshDreams();
-            debugPrint('Refreshing dreams after authentication');
-          });
+          }
           
           return const MainNavigation();
         } else {
+          // Reset initialization flag when user logs out
+          _globalServiceInitialized = false;
           debugPrint('Firebase Auth: User is signed out');
           return const WelcomeScreen();
         }

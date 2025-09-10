@@ -10,6 +10,7 @@ class ConvexService extends ChangeNotifier {
   String? _convexUrl;
   String? _userId;
   bool _isInitialized = false;
+  String? _lastUpsertedUserId; // Track last upserted user to prevent duplicates
 
   bool get isInitialized => _isInitialized;
   String? get userId => _userId;
@@ -33,6 +34,12 @@ class ConvexService extends ChangeNotifier {
   }
 
   void setUserId(String userId) {
+    // Prevent duplicate userId setting
+    if (_userId == userId) {
+      debugPrint('ConvexService: UserId already set to $userId, skipping');
+      return;
+    }
+    
     _userId = userId;
     debugPrint('✅ SECURITY: ConvexService userId set to: $_userId');
     // Defer notification to avoid calling during build phase
@@ -381,6 +388,12 @@ class ConvexService extends ChangeNotifier {
     String? lastName,
     String? profileImageUrl,
   }) async {
+    // Prevent duplicate upserts for same user
+    if (_lastUpsertedUserId == authId) {
+      debugPrint('ConvexService: User $authId already upserted, skipping');
+      return authId;
+    }
+    
     debugPrint('=== CONVEX UPSERT USER ===');
     debugPrint('ConvexService initialized: $_isInitialized');
     debugPrint('Convex URL: $_convexUrl');
@@ -435,6 +448,7 @@ class ConvexService extends ChangeNotifier {
           return null;
         } else {
           debugPrint('✅ User synced to Convex successfully: $email');
+          _lastUpsertedUserId = authId; // Mark this user as successfully upserted
           return response.data.toString();
         }
       } else {

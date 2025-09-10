@@ -10,6 +10,7 @@ class DreamService extends ChangeNotifier {
   
   List<Dream> _dreams = [];
   bool _isLoading = false;
+  bool _hasLoadedForCurrentUser = false;
   
   List<Dream> get dreams => _dreams;
   bool get isLoading => _isLoading;
@@ -34,6 +35,7 @@ class DreamService extends ChangeNotifier {
     } else {
       debugPrint('🔒 SECURITY: User signed out - clearing dreams list');
       _dreams.clear();
+      _hasLoadedForCurrentUser = false; // Reset for next user
       notifyListeners();
     }
   }
@@ -92,7 +94,14 @@ class DreamService extends ChangeNotifier {
 
   // Public method to refresh dreams (e.g., after authentication)
   Future<void> refreshDreams() async {
+    // Prevent duplicate refreshes for the same user session
+    if (_hasLoadedForCurrentUser && _dreams.isNotEmpty) {
+      debugPrint('DreamService: Dreams already loaded for current user, skipping refresh');
+      return;
+    }
+    
     await _loadDreams();
+    _hasLoadedForCurrentUser = true;
   }
 
 
