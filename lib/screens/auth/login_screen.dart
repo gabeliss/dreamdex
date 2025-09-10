@@ -7,7 +7,6 @@ import '../main_navigation.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../services/firebase_auth_service.dart';
-import '../../services/convex_service.dart';
 import '../../main.dart';
 
 class LoginScreen extends StatefulWidget {

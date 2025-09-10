@@ -525,13 +525,15 @@ class _AddDreamScreenState extends State<AddDreamScreen>
         _pulseController.repeat();
         _waveController.repeat();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-            backgroundColor: AppColors.errorRed,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              backgroundColor: AppColors.errorRed,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }
@@ -548,12 +550,14 @@ class _AddDreamScreenState extends State<AddDreamScreen>
 
   Future<void> _saveDream(DreamService dreamService) async {
     if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please provide both a title and description for your dream.'),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please provide both a title and description for your dream.'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
       return;
     }
 
@@ -583,18 +587,21 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       } catch (e) {
         debugPrint('Error storing image: $e');
         // Still show success for dream save, just mention image issue
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dream saved, but image storage failed. You can regenerate it later.'),
-            backgroundColor: AppColors.sunsetOrange,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dream saved, but image storage failed. You can regenerate it later.'),
+              backgroundColor: AppColors.sunsetOrange,
+            ),
+          );
+        }
       }
     }
 
     // Automatically analyze the dream content
     if (savedDream != null) {
       try {
+        if (!mounted) return;
         final aiService = Provider.of<AIService>(context, listen: false);
         final analysisData = await aiService.analyzeDream(_contentController.text.trim());
         
@@ -616,12 +623,14 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       _isSaving = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Dream saved successfully!'),
-        backgroundColor: AppColors.successGreen,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dream saved successfully!'),
+          backgroundColor: AppColors.successGreen,
+        ),
+      );
+    }
 
     _titleController.clear();
     _contentController.clear();
@@ -644,12 +653,14 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           _generatedImageData = imageData;
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dream image generated successfully!'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dream image generated successfully!'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

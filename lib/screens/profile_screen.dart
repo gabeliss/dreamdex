@@ -176,13 +176,13 @@ class ProfileScreen extends StatelessWidget {
         'title': 'Privacy Policy',
         'subtitle': 'View privacy policy',
         'icon': Icons.privacy_tip,
-        'onTap': () => _openUrl('https://your-privacy-policy-url.com'),
+        'onTap': () => _openUrl('https://dreamdexapp.com/privacy'),
       },
       {
         'title': 'Terms of Service',
         'subtitle': 'View terms of service',
         'icon': Icons.article,
-        'onTap': () => _openUrl('https://your-terms-url.com'),
+        'onTap': () => _openUrl('https://dreamdexapp.com/terms'),
       },
       {
         'title': 'Sign Out',
@@ -383,7 +383,7 @@ class ProfileScreen extends StatelessWidget {
 
 
   void _handleContactSupport() async {
-    const email = 'support@dreamdex.com'; // Replace with your support email
+    const email = 'contact@dreamdexapp.com'; // Replace with your support email
     const subject = 'Dreamdex App Support';
     final url = 'mailto:$email?subject=${Uri.encodeComponent(subject)}';
     await _openUrl(url);
