@@ -74,6 +74,27 @@ class AIService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
+        // Check for prompt-level blocks (like PROHIBITED_CONTENT)
+        if (data['promptFeedback'] != null && data['promptFeedback']['blockReason'] != null) {
+          switch (data['promptFeedback']['blockReason']) {
+            case 'PROHIBITED_CONTENT':
+              throw const ImageGenerationException(
+                'Image generation was blocked because the request contained restricted content. Please adjust your prompt and try again.',
+                'PROHIBITED_CONTENT'
+              );
+            case 'SAFETY':
+              throw const ImageGenerationException(
+                'The image generation was blocked for safety reasons. Please try rephrasing your dream description.',
+                'SAFETY'
+              );
+            default:
+              throw ImageGenerationException(
+                'Content was blocked: ${data['promptFeedback']['blockReason']}. Please try rephrasing your dream description.',
+                'BLOCKED'
+              );
+          }
+        }
+        
         if (data['candidates'] != null && data['candidates'].isNotEmpty) {
           final candidate = data['candidates'][0];
           

@@ -9,6 +9,7 @@ import '../services/speech_service.dart';
 import '../services/ai_service.dart';
 import '../services/convex_service.dart';
 import '../services/subscription_service.dart';
+import '../utils/dream_image_utils.dart';
 import '../widgets/paywall_dialog.dart';
 
 class AddDreamScreen extends StatefulWidget {
@@ -753,8 +754,8 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           dreamId: savedDream.id,
           userId: convexService.userId!,
         );
-        // Refresh dreams to get updated image URLs
-        await dreamService.refreshDreams();
+        // Force refresh dreams to get updated image URLs
+        await dreamService.forceRefresh();
       } catch (e) {
         debugPrint('Error storing image: $e');
         // Still show success for dream save, just mention image issue
@@ -820,72 +821,16 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   }
 
   Future<void> _generateDreamImage(AIService aiService) async {
-    if (_contentController.text.trim().isEmpty) return;
-
-    try {
-      final imageData = await aiService.generateDreamImageData(_contentController.text.trim());
-      
-      if (imageData != null) {
-        setState(() {
-          _generatedImageData = imageData;
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Dream image generated successfully!'),
-              backgroundColor: AppColors.successGreen,
-            ),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to generate dream image. Please try again.'),
-            backgroundColor: AppColors.errorRed,
-          ),
-        );
-      }
-    } catch (e) {
-      // Handle specific image generation exceptions with user-friendly messages
-      String errorMessage;
-      Color backgroundColor = AppColors.errorRed;
-      
-      // Check for specific content policy violations - use warning color instead of error
-      if (e.toString().contains('cannot be visualized') ||
-          e.toString().contains('blocked for safety') ||
-          e.toString().contains('copyrighted material') ||
-          e.toString().contains('different words') ||
-          e.toString().contains('rephrasing')) {
-        backgroundColor = AppColors.sunsetOrange;
-        // Extract the clean message without "ImageGenerationException: " prefix
-        errorMessage = e.toString().replaceFirst('ImageGenerationException: ', '');
-      } 
-      // Check for rate limiting or service issues - use neutral color
-      else if (e.toString().contains('wait a moment') ||
-               e.toString().contains('temporarily unavailable') ||
-               e.toString().contains('try again later')) {
-        backgroundColor = Colors.blueGrey;
-        errorMessage = e.toString().replaceFirst('ImageGenerationException: ', '');
-      }
-      // All other errors
-      else {
-        errorMessage = e.toString().replaceFirst('ImageGenerationException: ', '');
-        if (errorMessage.startsWith('Error generating image: ')) {
-          // Don't double-prefix if it's already there
-          errorMessage = errorMessage;
-        } else {
-          errorMessage = 'Error generating image: $errorMessage';
-        }
-      }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: backgroundColor,
-          duration: const Duration(seconds: 5), // Longer duration for detailed messages
-        ),
-      );
+    final imageData = await DreamImageUtils.generateDreamImage(
+      context: context,
+      aiService: aiService,
+      dreamContent: _contentController.text,
+    );
+    
+    if (imageData != null) {
+      setState(() {
+        _generatedImageData = imageData;
+      });
     }
   }
 

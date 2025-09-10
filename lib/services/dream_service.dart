@@ -104,6 +104,12 @@ class DreamService extends ChangeNotifier {
     _hasLoadedForCurrentUser = true;
   }
 
+  // Force refresh dreams (bypasses the duplicate refresh guard)
+  Future<void> forceRefresh() async {
+    debugPrint('DreamService: Force refreshing dreams...');
+    await _loadDreams();
+  }
+
 
   Future<Dream?> addDream(Dream dream) async {
     try {
@@ -233,44 +239,6 @@ class DreamService extends ChangeNotifier {
     }).toList();
   }
 
-  // Generate image for an existing dream
-  Future<bool> generateImageForDream(String dreamId, String userId, String dreamDescription) async {
-    try {
-      // Update dream to show it's generating
-      final dreamIndex = _dreams.indexWhere((d) => d.id == dreamId);
-      if (dreamIndex == -1) return false;
-      
-      final dream = _dreams[dreamIndex];
-      final updatingDream = dream.copyWith(isGeneratingImage: true);
-      _dreams[dreamIndex] = updatingDream;
-      notifyListeners();
-      
-      // Generate and store the image in Convex
-      await _convexService.uploadImage(
-        base64Image: dreamDescription, // This will be handled by AIService
-        dreamId: dreamId,
-        userId: userId,
-      );
-      
-      // Refresh dreams to get the updated dream with image URL
-      await _loadDreams();
-      
-      return true;
-    } catch (e) {
-      debugPrint('Error generating image for dream: $e');
-      
-      // Reset generating state on error
-      final dreamIndex = _dreams.indexWhere((d) => d.id == dreamId);
-      if (dreamIndex != -1) {
-        final dream = _dreams[dreamIndex];
-        final updatedDream = dream.copyWith(isGeneratingImage: false);
-        _dreams[dreamIndex] = updatedDream;
-        notifyListeners();
-      }
-      
-      return false;
-    }
-  }
 
   Map<String, int> getDreamStats() {
     return {

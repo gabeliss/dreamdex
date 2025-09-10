@@ -7,6 +7,9 @@ import '../models/dream.dart';
 import '../services/dream_service.dart';
 import '../services/subscription_service.dart';
 import '../services/ai_service.dart';
+import '../services/firebase_auth_service.dart';
+import '../services/convex_service.dart';
+import '../utils/dream_image_utils.dart';
 import '../widgets/dream_image_widget.dart';
 import '../widgets/paywall_dialog.dart';
 
@@ -161,70 +164,84 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
   }
 
   Widget _buildDreamTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDreamTypeChip(),
-          const SizedBox(height: 20),
-          if (widget.dream.aiGeneratedImageUrl != null) ...[
-            DreamImageWidget(
-              imagePath: widget.dream.aiGeneratedImageUrl,
-              height: 250,
-            ),
-            const SizedBox(height: 24),
-          ],
-          Text(
-            'Description',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.ultraLightPurple,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.lightPurple),
-            ),
-            child: Text(
-              widget.dream.content,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                height: 1.6,
+    return Consumer<DreamService>(
+      builder: (context, dreamService, child) {
+        // Get the current dream state from the service to reflect real-time changes
+        final currentDream = dreamService.dreams.firstWhere(
+          (d) => d.id == widget.dream.id,
+          orElse: () => _currentDream ?? widget.dream,
+        );
+        
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDreamTypeChip(),
+              const SizedBox(height: 20),
+              if (currentDream.aiGeneratedImageUrl != null) ...[
+                DreamImageWidget(
+                  imagePath: currentDream.aiGeneratedImageUrl,
+                  height: 250,
+                ),
+                const SizedBox(height: 24),
+              ] else ...[
+                // Show generate image button when no image exists
+                _buildImageGenerationSection(),
+                const SizedBox(height: 24),
+              ],
+              Text(
+                'Description',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-            ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.ultraLightPurple,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.lightPurple),
+                ),
+                child: Text(
+                  currentDream.content,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    height: 1.6,
+                  ),
+                ),
+              ),
+              if (currentDream.tags.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Tags',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: currentDream.tags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightBlue,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '#$tag',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.dreamBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
           ),
-          if (widget.dream.tags.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text(
-              'Tags',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: widget.dream.tags.map((tag) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightBlue,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '#$tag',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.dreamBlue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     ).animate().fadeIn(duration: 500.ms, delay: 200.ms);
   }
 
@@ -745,6 +762,119 @@ class _DreamDetailScreenState extends State<DreamDetailScreen>
         )).toList(),
       ],
     );
+  }
+
+  Widget _buildImageGenerationSection() {
+    return Consumer2<SubscriptionService, AIService>(
+      builder: (context, subscriptionService, aiService, child) {
+        final isPremium = subscriptionService.isPremium;
+        final isGenerating = aiService.isGeneratingImage;
+        final isButtonDisabled = isGenerating || !isPremium;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dream Visualization',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Generate an AI image to visualize your dream',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: isButtonDisabled
+                        ? null
+                        : () => _generateDreamImage(aiService),
+                    icon: isGenerating
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              color: isPremium ? AppColors.primaryPurple : Colors.grey,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Icon(
+                            isPremium ? Icons.auto_awesome : Icons.lock,
+                            color: isPremium ? AppColors.primaryPurple : Colors.grey,
+                          ),
+                    label: Text(
+                      isGenerating
+                          ? 'Generating Image...'
+                          : 'Generate Dream Image',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isPremium ? AppColors.primaryPurple : Colors.grey,
+                      side: BorderSide(color: isPremium ? AppColors.primaryPurple : Colors.grey),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    ),
+                  ),
+                ),
+                if (!isPremium) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => showPaywall(context, PremiumFeature.imageGeneration),
+                    child: Text(
+                      'Tap to upgrade and unlock image generation',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.primaryPurple,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ).animate().fadeIn(duration: 500.ms, delay: 150.ms).slideY(begin: 0.2);
+      },
+    );
+  }
+
+  Future<void> _generateDreamImage(AIService aiService) async {
+    final dreamService = Provider.of<DreamService>(context, listen: false);
+    final authService = Provider.of<FirebaseAuthService>(context, listen: false);
+    final convexService = Provider.of<ConvexService>(context, listen: false);
+    
+    // Get current user ID
+    final userId = authService.currentUser?.uid ?? '';
+    if (userId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: User not authenticated'),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Generate and upload the image using the utility
+    final imageData = await DreamImageUtils.generateDreamImage(
+      context: context,
+      aiService: aiService,
+      dreamContent: _currentDream!.content,
+      convexService: convexService,
+      dreamId: _currentDream!.id,
+      userId: userId,
+    );
+    
+    if (imageData != null) {
+      // Force refresh dreams to get the updated image URL
+      // The Consumer in _buildDreamTab will automatically rebuild with the new data
+      await dreamService.forceRefresh();
+    }
   }
 
   Future<void> _generateAnalysis() async {
