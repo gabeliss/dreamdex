@@ -4,6 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'convex_service.dart';
 
+class ImageGenerationException implements Exception {
+  final String message;
+  final String code;
+  
+  const ImageGenerationException(this.message, this.code);
+  
+  @override
+  String toString() => message;
+}
+
 class AIService extends ChangeNotifier {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
   String? _apiKey;
@@ -35,8 +45,7 @@ class AIService extends ChangeNotifier {
 
   Future<String?> generateDreamImageData(String dreamDescription) async {
     if (_apiKey == null) {
-      debugPrint('API key not found');
-      return null;
+      throw const ImageGenerationException('AI API key not configured. Please contact support.', 'API_KEY_MISSING');
     }
 
     _isGeneratingImage = true;
@@ -68,6 +77,33 @@ class AIService extends ChangeNotifier {
         
         if (data['candidates'] != null && data['candidates'].isNotEmpty) {
           final candidate = data['candidates'][0];
+          
+          // Check for specific failure reasons
+          if (candidate['finishReason'] != null) {
+            switch (candidate['finishReason']) {
+              case 'PROHIBITED_CONTENT':
+                throw const ImageGenerationException(
+                  'Image generation was blocked because the request contained restricted content. Please adjust your prompt and try again.',
+                  'PROHIBITED_CONTENT'
+                );
+              case 'SAFETY':
+                throw const ImageGenerationException(
+                  'The image generation was blocked for safety reasons. Please try rephrasing your dream description.',
+                  'SAFETY'
+                );
+              case 'RECITATION':
+                throw const ImageGenerationException(
+                  'The content appears to reference copyrighted material. Please describe your dream in your own words.',
+                  'RECITATION'
+                );
+              case 'OTHER':
+                throw const ImageGenerationException(
+                  'The image generation encountered an issue. Please try again with a different description.',
+                  'OTHER'
+                );
+            }
+          }
+          
           if (candidate['content'] != null && 
               candidate['content']['parts'] != null &&
               candidate['content']['parts'].isNotEmpty) {
@@ -84,12 +120,39 @@ class AIService extends ChangeNotifier {
           }
         }
         
-        debugPrint('No image data found in response');
+        throw const ImageGenerationException(
+          'The image generation completed but no image was produced. Please try again.',
+          'NO_IMAGE_DATA'
+        );
+      } else if (response.statusCode == 429) {
+        throw const ImageGenerationException(
+          'Too many image generation requests. Please wait a moment and try again.',
+          'RATE_LIMIT'
+        );
+      } else if (response.statusCode >= 500) {
+        throw const ImageGenerationException(
+          'The image generation service is temporarily unavailable. Please try again later.',
+          'SERVER_ERROR'
+        );
       } else {
-        debugPrint('Image generation failed: ${response.statusCode} - ${response.body}');
+        throw ImageGenerationException(
+          'Image generation failed (${response.statusCode}). Please try again.',
+          'HTTP_ERROR'
+        );
       }
     } catch (e) {
+      _isGeneratingImage = false;
+      notifyListeners();
+      
+      if (e is ImageGenerationException) {
+        rethrow;
+      }
+      
       debugPrint('Error generating dream image: $e');
+      throw const ImageGenerationException(
+        'An unexpected error occurred while generating the image. Please check your internet connection and try again.',
+        'UNKNOWN_ERROR'
+      );
     }
 
     _isGeneratingImage = false;
@@ -99,8 +162,7 @@ class AIService extends ChangeNotifier {
 
   Future<String?> generateDreamImage(String dreamDescription, String dreamId, String userId) async {
     if (_apiKey == null) {
-      debugPrint('API key not found');
-      return null;
+      throw const ImageGenerationException('AI API key not configured. Please contact support.', 'API_KEY_MISSING');
     }
 
     _isGeneratingImage = true;
@@ -134,6 +196,33 @@ class AIService extends ChangeNotifier {
         // Check if we have candidates with images
         if (data['candidates'] != null && data['candidates'].isNotEmpty) {
           final candidate = data['candidates'][0];
+          
+          // Check for specific failure reasons
+          if (candidate['finishReason'] != null) {
+            switch (candidate['finishReason']) {
+              case 'PROHIBITED_CONTENT':
+                throw const ImageGenerationException(
+                  'Your dream description contains content that cannot be visualized. Try describing your dream with different words or focus on other aspects of the dream.',
+                  'PROHIBITED_CONTENT'
+                );
+              case 'SAFETY':
+                throw const ImageGenerationException(
+                  'The image generation was blocked for safety reasons. Please try rephrasing your dream description.',
+                  'SAFETY'
+                );
+              case 'RECITATION':
+                throw const ImageGenerationException(
+                  'The content appears to reference copyrighted material. Please describe your dream in your own words.',
+                  'RECITATION'
+                );
+              case 'OTHER':
+                throw const ImageGenerationException(
+                  'The image generation encountered an issue. Please try again with a different description.',
+                  'OTHER'
+                );
+            }
+          }
+          
           if (candidate['content'] != null && 
               candidate['content']['parts'] != null &&
               candidate['content']['parts'].isNotEmpty) {
@@ -154,12 +243,39 @@ class AIService extends ChangeNotifier {
           }
         }
         
-        debugPrint('No image data found in response');
+        throw const ImageGenerationException(
+          'The image generation completed but no image was produced. Please try again.',
+          'NO_IMAGE_DATA'
+        );
+      } else if (response.statusCode == 429) {
+        throw const ImageGenerationException(
+          'Too many image generation requests. Please wait a moment and try again.',
+          'RATE_LIMIT'
+        );
+      } else if (response.statusCode >= 500) {
+        throw const ImageGenerationException(
+          'The image generation service is temporarily unavailable. Please try again later.',
+          'SERVER_ERROR'
+        );
       } else {
-        debugPrint('Image generation failed: ${response.statusCode} - ${response.body}');
+        throw ImageGenerationException(
+          'Image generation failed (${response.statusCode}). Please try again.',
+          'HTTP_ERROR'
+        );
       }
     } catch (e) {
+      _isGeneratingImage = false;
+      notifyListeners();
+      
+      if (e is ImageGenerationException) {
+        rethrow;
+      }
+      
       debugPrint('Error generating dream image: $e');
+      throw const ImageGenerationException(
+        'An unexpected error occurred while generating the image. Please check your internet connection and try again.',
+        'UNKNOWN_ERROR'
+      );
     }
 
     _isGeneratingImage = false;

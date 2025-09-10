@@ -28,6 +28,8 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   bool _isRecording = false;
   bool _isSaving = false;
   String? _generatedImageData; // Store base64 image data temporarily
+  String _contentBeforeRecording = ''; // Store content before starting new recording
+  String _displayTranscript = ''; // Store transcript for display beneath microphone
   late AnimationController _pulseController;
   late AnimationController _waveController;
 
@@ -86,6 +88,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,6 +100,43 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           },
           child: Consumer3<SpeechService, DreamService, AIService>(
             builder: (context, speechService, dreamService, aiService, child) {
+              // Handle automatic stop (when recording was active but speech service stopped)
+              if (_isRecording && !speechService.isListening) {
+                debugPrint('🔄 Auto-stop detected in Consumer. Text: "${speechService.transcribedText}"');
+                debugPrint('🔄 Current display transcript: "$_displayTranscript"');
+                
+                // Use post-frame callback to avoid calling setState during build
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_isRecording && !speechService.isListening) {
+                    setState(() {
+                      _isRecording = false;
+                      // Update display transcript and append to content (same logic as manual stop)
+                      final newText = speechService.transcribedText.trim();
+                      
+                      // Update display transcript for beneath microphone
+                      final oldDisplayTranscript = _displayTranscript;
+                      if (_displayTranscript.isEmpty) {
+                        _displayTranscript = newText;
+                      } else if (newText.isNotEmpty) {
+                        _displayTranscript = '$_displayTranscript $newText';
+                      }
+                      debugPrint('🔄 Updated display transcript from "$oldDisplayTranscript" to "$_displayTranscript"');
+                      
+                      // Update content field
+                      if (_contentBeforeRecording.isEmpty) {
+                        _contentController.text = newText;
+                      } else if (newText.isNotEmpty) {
+                        _contentController.text = '$_contentBeforeRecording $newText';
+                      } else {
+                        _contentController.text = _contentBeforeRecording;
+                      }
+                    });
+                    _pulseController.stop();
+                    _waveController.stop();
+                  }
+                });
+              }
+              
               return SingleChildScrollView(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(20),
@@ -172,33 +212,65 @@ class _AddDreamScreenState extends State<AddDreamScreen>
           ).animate(target: speechService.isListening ? 1 : 0)
               .shimmer(duration: 1000.ms, color: AppColors.cloudWhite.withOpacity(0.3)),
           const SizedBox(height: 20),
-          GestureDetector(
-            onTap: () => _toggleRecording(speechService),
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.cloudWhite,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.cloudWhite.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: speechService.isListening ? 10 : 0,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Clear button (only show if there's content to clear)
+              if (_contentController.text.trim().isNotEmpty && !speechService.isListening) ...[
+                GestureDetector(
+                  onTap: _clearTranscript,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.cloudWhite.withOpacity(0.8),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cloudWhite.withOpacity(0.2),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.clear,
+                      size: 24,
+                      color: AppColors.primaryPurple,
+                    ),
                   ),
-                ],
+                ).animate().fadeIn(duration: 300.ms).scale(),
+                const SizedBox(width: 20),
+              ],
+              // Main microphone button
+              GestureDetector(
+                onTap: () => _toggleRecording(speechService),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.cloudWhite,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.cloudWhite.withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: speechService.isListening ? 10 : 0,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    speechService.isListening ? Icons.stop : Icons.mic,
+                    size: 36,
+                    color: AppColors.primaryPurple,
+                  ),
+                ).animate(target: speechService.isListening ? 1 : 0)
+                    .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1))
+                    .then()
+                    .shimmer(duration: 1500.ms, color: AppColors.cloudWhite.withOpacity(0.5)),
               ),
-              child: Icon(
-                speechService.isListening ? Icons.stop : Icons.mic,
-                size: 36,
-                color: AppColors.primaryPurple,
-              ),
-            ).animate(target: speechService.isListening ? 1 : 0)
-                .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1))
-                .then()
-                .shimmer(duration: 1500.ms, color: AppColors.cloudWhite.withOpacity(0.5)),
+            ],
           ),
-          if (speechService.transcribedText.isNotEmpty) ...[
+          if (_displayTranscript.isNotEmpty || speechService.isListening) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(16),
@@ -207,7 +279,11 @@ class _AddDreamScreenState extends State<AddDreamScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                speechService.transcribedText,
+                speechService.isListening 
+                    ? (_displayTranscript.isEmpty 
+                        ? speechService.transcribedText 
+                        : '$_displayTranscript ${speechService.transcribedText}')
+                    : _displayTranscript,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.cloudWhite,
                 ),
@@ -401,16 +477,45 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       await speechService.stopListening();
       setState(() {
         _isRecording = false;
-        _contentController.text = speechService.transcribedText;
+        // Update display transcript and append to content
+        final newText = speechService.transcribedText.trim();
+        
+        // Update display transcript for beneath microphone
+        if (_displayTranscript.isEmpty) {
+          _displayTranscript = newText;
+        } else if (newText.isNotEmpty) {
+          _displayTranscript = '$_displayTranscript $newText';
+        }
+        
+        // Update content field
+        if (_contentBeforeRecording.isEmpty) {
+          _contentController.text = newText;
+        } else if (newText.isNotEmpty) {
+          _contentController.text = '$_contentBeforeRecording $newText';
+        } else {
+          _contentController.text = _contentBeforeRecording;
+        }
       });
       _pulseController.stop();
       _waveController.stop();
     } else {
       try {
+        // Store the current content before starting recording
+        _contentBeforeRecording = _contentController.text.trim();
+        
         await speechService.startListening(
           onResult: (text) {
             setState(() {
-              _contentController.text = text;
+              // During recording, show original content + new transcription
+              final newText = text.trim();
+              
+              if (_contentBeforeRecording.isEmpty) {
+                _contentController.text = newText;
+              } else if (newText.isNotEmpty) {
+                _contentController.text = '$_contentBeforeRecording $newText';
+              } else {
+                _contentController.text = _contentBeforeRecording;
+              }
             });
           },
         );
@@ -429,6 +534,16 @@ class _AddDreamScreenState extends State<AddDreamScreen>
         );
       }
     }
+  }
+
+  void _clearTranscript() {
+    setState(() {
+      _contentController.clear();
+      _displayTranscript = '';
+      _contentBeforeRecording = '';
+    });
+    final speechService = Provider.of<SpeechService>(context, listen: false);
+    speechService.clearTranscription();
   }
 
   Future<void> _saveDream(DreamService dreamService) async {
@@ -513,6 +628,8 @@ class _AddDreamScreenState extends State<AddDreamScreen>
     setState(() {
       _selectedType = DreamType.normal;
       _generatedImageData = null;
+      _displayTranscript = '';
+      _contentBeforeRecording = '';
     });
   }
 
@@ -542,10 +659,43 @@ class _AddDreamScreenState extends State<AddDreamScreen>
         );
       }
     } catch (e) {
+      // Handle specific image generation exceptions with user-friendly messages
+      String errorMessage;
+      Color backgroundColor = AppColors.errorRed;
+      
+      // Check for specific content policy violations - use warning color instead of error
+      if (e.toString().contains('cannot be visualized') ||
+          e.toString().contains('blocked for safety') ||
+          e.toString().contains('copyrighted material') ||
+          e.toString().contains('different words') ||
+          e.toString().contains('rephrasing')) {
+        backgroundColor = AppColors.sunsetOrange;
+        // Extract the clean message without "ImageGenerationException: " prefix
+        errorMessage = e.toString().replaceFirst('ImageGenerationException: ', '');
+      } 
+      // Check for rate limiting or service issues - use neutral color
+      else if (e.toString().contains('wait a moment') ||
+               e.toString().contains('temporarily unavailable') ||
+               e.toString().contains('try again later')) {
+        backgroundColor = Colors.blueGrey;
+        errorMessage = e.toString().replaceFirst('ImageGenerationException: ', '');
+      }
+      // All other errors
+      else {
+        errorMessage = e.toString().replaceFirst('ImageGenerationException: ', '');
+        if (errorMessage.startsWith('Error generating image: ')) {
+          // Don't double-prefix if it's already there
+          errorMessage = errorMessage;
+        } else {
+          errorMessage = 'Error generating image: $errorMessage';
+        }
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error generating image: ${e.toString()}'),
-          backgroundColor: AppColors.errorRed,
+          content: Text(errorMessage),
+          backgroundColor: backgroundColor,
+          duration: const Duration(seconds: 5), // Longer duration for detailed messages
         ),
       );
     }

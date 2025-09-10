@@ -125,7 +125,7 @@ class SpeechService extends ChangeNotifier {
         notifyListeners();
       },
       listenFor: const Duration(minutes: 5),
-      pauseFor: const Duration(seconds: 3),
+      pauseFor: const Duration(seconds: 6),
       partialResults: true,
       localeId: 'en_US',
       onSoundLevelChange: onSoundLevel,

@@ -466,13 +466,18 @@ class ProfileScreen extends StatelessWidget {
                   // 2. Clear subscription service user data
                   await subscriptionService.clearUserId();
 
-                  // 3. Sign out locally
+                  // 3. Delete the Firebase Authentication account
                   try {
-                    // Sign out from Firebase
-                    await authService.signOut();
+                    final deleteSuccess = await authService.deleteAccount();
+                    if (!deleteSuccess) {
+                      if (context.mounted) Navigator.pop(context); // Close loading dialog
+                      _showSnackBar(context, 'Failed to delete Firebase account. Please try again.', isError: true);
+                      return;
+                    }
+                    debugPrint('✅ Firebase account deleted successfully');
                   } catch (e) {
                     if (context.mounted) Navigator.pop(context); // Close loading dialog
-                    _showSnackBar(context, 'Failed to sign out: $e', isError: true);
+                    _showSnackBar(context, 'Failed to delete Firebase account: $e', isError: true);
                     return;
                   }
 
@@ -480,7 +485,7 @@ class ProfileScreen extends StatelessWidget {
                   if (context.mounted) Navigator.pop(context);
 
                   // Show success message and navigate to welcome screen
-                  _showSnackBar(context, 'Account data deleted successfully. ${convexResult['deletedDreams']} dreams were removed. You have been signed out.', isError: false);
+                  _showSnackBar(context, 'Account deleted successfully. Your account has been permanently deleted.', isError: false);
                   
                   // Navigate to welcome screen after a delay
                   await Future.delayed(const Duration(seconds: 2));
