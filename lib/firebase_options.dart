@@ -63,6 +63,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '578897121117',
     projectId: 'dreamdex-e9296',
     storageBucket: 'dreamdex-e9296.firebasestorage.app',
-    iosBundleId: 'com.example.dreamdex',
+    iosBundleId: 'com.gabeliss.dreamdex',
   );
 }

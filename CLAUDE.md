@@ -6,7 +6,7 @@
 
 # DIRECTORY: /Users/gabeliss/Desktop/dreamdex/
 
-# BUNDLE ID: com.example.dreamdex (NOT dreamdx!!!)
+# BUNDLE ID: com.gabeliss.dreamdex (NOT dreamdx!!!)
 
 # NEVER use "dreamdx" - it is ALWAYS "dreamdex"
 

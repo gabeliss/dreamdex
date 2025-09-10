@@ -1,4 +1,4 @@
-package com.example.dreamdex
+package com.gabeliss.dreamdex
 
 import io.flutter.embedding.android.FlutterActivity
 
