@@ -104,11 +104,13 @@ Before running the app, make sure you have:
 6. **Run the app**
 
    **Development mode** (uses `.env.local`):
+
    ```bash
    flutter run
    ```
 
    **Production mode** (uses `.env`):
+
    ```bash
    flutter run --release
    ```
@@ -129,15 +131,6 @@ cd web
 
 # Method 1: Python 3 (most common)
 python3 -m http.server 8000
-
-# Method 2: Node.js (if you have npx installed)
-npx serve .
-
-# Method 3: PHP (if installed)
-php -S localhost:8000
-
-# Method 4: Simple HTTP server (if you have it installed)
-http-server . -p 8000
 ```
 
 Then open your browser to:
@@ -226,6 +219,7 @@ The app uses automatic environment selection:
 Create both files in the root directory:
 
 **`.env.local`** (development):
+
 ```env
 CONVEX_DEPLOYMENT=dev:your-dev-deployment
 CONVEX_URL=https://your-dev-deployment.convex.cloud
@@ -234,6 +228,7 @@ REVENUECAT_API_KEY=your_revenuecat_key_here
 ```
 
 **`.env`** (production):
+
 ```env
 CONVEX_DEPLOYMENT=prod:your-prod-deployment
 CONVEX_URL=https://your-prod-deployment.convex.cloud
@@ -244,11 +239,13 @@ REVENUECAT_API_KEY=your_revenuecat_key_here
 ### Convex Backend Setup
 
 **Development:**
+
 ```bash
 npx convex dev    # Start dev server and watch for changes
 ```
 
 **Production deployment:**
+
 ```bash
 npx convex deploy # Deploy to production
 ```
