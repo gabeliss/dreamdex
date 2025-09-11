@@ -49,6 +49,8 @@
 	<string>This app uses speech recognition to record your dreams using voice input.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs microphone access to record your dreams using voice input.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
