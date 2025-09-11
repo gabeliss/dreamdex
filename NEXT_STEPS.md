@@ -10,7 +10,7 @@
 2. Paywall System 🔒
 
 - Create subscription gate for AI analysis/image generation
-- Add "Upgrade to Pro" prompts throughout app
+- Add "Upgrade to Premium" prompts throughout app
 - Limit free users to X dreams per month
 - Show subscription benefits clearly
 

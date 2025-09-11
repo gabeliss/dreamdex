@@ -557,6 +557,74 @@ class ConvexService extends ChangeNotifier {
     return null;
   }
 
+  // Get user data including totalDreams count
+  Future<Map<String, dynamic>?> getUserData() async {
+    debugPrint('=== CONVEX GET USER DATA ===');
+    debugPrint('_isInitialized: $_isInitialized');
+    debugPrint('_userId: $_userId');
+    debugPrint('_convexUrl: $_convexUrl');
+    
+    if (!_isInitialized || _userId == null) {
+      debugPrint('❌ SECURITY: Cannot fetch user data - ConvexService not initialized or userId is null');
+      return null;
+    }
+
+    debugPrint('✅ SECURITY: Fetching user data for user: $_userId');
+
+    try {
+      final requestData = {
+        'path': 'users:getByAuthId',
+        'args': {'authId': _userId},
+      };
+      debugPrint('Request data: $requestData');
+      debugPrint('Request URL: $_convexUrl/api/query');
+      
+      final response = await _dio.post(
+        '$_convexUrl/api/query',
+        data: requestData,
+      );
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response data: ${response.data}');
+      debugPrint('Response data type: ${response.data.runtimeType}');
+
+      if (response.statusCode == 200) {
+        // Check if response contains an error
+        if (response.data is Map<String, dynamic> && 
+            response.data['status'] == 'error') {
+          debugPrint('❌ Convex API returned error: ${response.data['errorMessage']}');
+          return null;
+        }
+        
+        // Handle response format
+        Map<String, dynamic>? userData;
+        
+        if (response.data is Map<String, dynamic>) {
+          if (response.data['status'] == 'success' && response.data['value'] != null) {
+            userData = response.data['value'] as Map<String, dynamic>;
+            debugPrint('Found userData in success wrapper: $userData');
+          } else if (response.data['authId'] != null) {
+            // Direct user object response
+            userData = response.data as Map<String, dynamic>;
+            debugPrint('Found userData as direct response: $userData');
+          }
+        }
+        
+        debugPrint('Final userData result: $userData');
+        debugPrint('totalDreams field: ${userData?['totalDreams']}');
+        return userData;
+      } else {
+        debugPrint('❌ Unexpected response status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching user data from Convex: $e');
+      debugPrint('Error type: ${e.runtimeType}');
+    }
+
+    debugPrint('Returning null from getUserData');
+    return null;
+  }
+
   // Sync local dreams to Convex (for migration)
   Future<bool> syncLocalDreams(List<Dream> localDreams) async {
     if (!_isInitialized || _userId == null) {

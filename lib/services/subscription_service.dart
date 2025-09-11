@@ -3,11 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'convex_service.dart';
 
 class SubscriptionService extends ChangeNotifier {
-  static const String _premiumEntitlementId = 'Pro';
+  static const String _premiumEntitlementId = 'Premium';
   static const String _lastSubscriptionCheckKey = 'last_subscription_check';
   static const Duration _cacheValidityDuration = Duration(hours: 1);
+
+  final ConvexService? _convexService;
 
   bool _isInitialized = false;
   bool _isPremium = false;
@@ -15,6 +18,8 @@ class SubscriptionService extends ChangeNotifier {
   CustomerInfo? _customerInfo;
   List<Offering> _offerings = [];
   String? _errorMessage;
+
+  SubscriptionService({ConvexService? convexService}) : _convexService = convexService;
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -294,35 +299,60 @@ class SubscriptionService extends ChangeNotifier {
   Future<bool> canCreateDream() async {
     if (_isPremium) return true;
     
-    final prefs = await SharedPreferences.getInstance();
-    final dreamCount = prefs.getInt('free_user_dream_count') ?? 0;
-    
-    return dreamCount < freeDreamLimit;
+    // Use the same logic as getFreeDreamCount to get current count
+    final currentCount = await getFreeDreamCount();
+    return currentCount < freeDreamLimit;
   }
 
   /// Get current dream count for free users
   Future<int> getFreeDreamCount() async {
-    if (_isPremium) return 0; // Premium users don't have limits
+    debugPrint('=== GET FREE DREAM COUNT ===');
+    debugPrint('isPremium: $_isPremium');
     
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('free_user_dream_count') ?? 0;
+    if (_isPremium) {
+      debugPrint('Premium user - returning 0');
+      return 0; // Premium users don't have limits
+    }
+    
+    debugPrint('ConvexService available: ${_convexService != null}');
+    if (_convexService != null) {
+      debugPrint('Calling getUserData()...');
+      final userData = await _convexService!.getUserData();
+      debugPrint('getUserData() result: $userData');
+      
+      if (userData != null && userData['totalDreams'] != null) {
+        final totalDreamsValue = userData['totalDreams'];
+        final dreamCount = totalDreamsValue is double 
+            ? totalDreamsValue.toInt() 
+            : totalDreamsValue as int;
+        debugPrint('Found totalDreams: $dreamCount (original: $totalDreamsValue, type: ${totalDreamsValue.runtimeType})');
+        return dreamCount;
+      } else {
+        debugPrint('userData is null or missing totalDreams field');
+      }
+    } else {
+      debugPrint('ConvexService is null');
+    }
+    
+    debugPrint('Returning default value: 0');
+    return 0; // Default to 0 if no data available
   }
 
   /// Increment dream count for free users
+  /// Note: The actual increment is handled by Convex backend when dreams are created.
+  /// This method just notifies listeners to update the UI.
   Future<void> incrementDreamCount() async {
     if (_isPremium) return; // Premium users don't have limits
     
-    final prefs = await SharedPreferences.getInstance();
-    final currentCount = prefs.getInt('free_user_dream_count') ?? 0;
-    await prefs.setInt('free_user_dream_count', currentCount + 1);
-    
-    notifyListeners(); // Notify UI to update progress
+    // The dream count is automatically incremented in Convex when dreams are created
+    // We just need to notify listeners to update the UI progress bar
+    notifyListeners();
   }
 
   /// Reset dream count (call when user upgrades to premium)
   Future<void> resetDreamCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('free_user_dream_count');
+    // No longer needed since dream count is managed by Convex
+    // Premium users don't have limits anyway
     notifyListeners();
   }
 

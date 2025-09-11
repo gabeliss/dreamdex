@@ -98,7 +98,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.dreamdex.premium.monthly",
+          "productID" : "com.gabeliss.dreamdex.premium.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Monthly Premium",
           "subscriptionGroupID" : "21480338",
@@ -126,7 +126,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.dreamdex.premium.annual",
+          "productID" : "com.gabeliss.dreamdex.premium.annual",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Annual Premium",
           "subscriptionGroupID" : "21480338",

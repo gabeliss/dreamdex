@@ -198,12 +198,25 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   }
 
   Widget _buildFreeDreamProgress(SubscriptionService subscriptionService) {
+    debugPrint('=== BUILD FREE DREAM PROGRESS ===');
     return FutureBuilder<int>(
       future: subscriptionService.getFreeDreamCount(),
       builder: (context, snapshot) {
+        debugPrint('FutureBuilder state: ${snapshot.connectionState}');
+        debugPrint('FutureBuilder hasData: ${snapshot.hasData}');
+        debugPrint('FutureBuilder data: ${snapshot.data}');
+        debugPrint('FutureBuilder hasError: ${snapshot.hasError}');
+        if (snapshot.hasError) {
+          debugPrint('FutureBuilder error: ${snapshot.error}');
+        }
+        
         final currentCount = snapshot.data ?? 0;
         final maxCount = SubscriptionService.freeDreamLimit;
         final progress = currentCount / maxCount;
+        
+        debugPrint('Current count: $currentCount');
+        debugPrint('Max count: $maxCount');
+        debugPrint('Progress: $progress');
         
         return Container(
           padding: const EdgeInsets.all(16),

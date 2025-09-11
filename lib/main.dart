@@ -60,7 +60,14 @@ class DreamdexApp extends StatelessWidget {
         providers: [
           ChangeNotifierProvider(create: (_) => FirebaseAuthService()),
           ChangeNotifierProvider(create: (_) => ConvexService()),
-          ChangeNotifierProvider(create: (_) => SubscriptionService()),
+          ChangeNotifierProxyProvider<ConvexService, SubscriptionService>(
+            create: (context) => SubscriptionService(
+              convexService: context.read<ConvexService>(),
+            ),
+            update: (context, convexService, previous) {
+              return previous ?? SubscriptionService(convexService: convexService);
+            },
+          ),
           ChangeNotifierProxyProvider2<ConvexService, FirebaseAuthService, DreamService>(
             create: (context) => DreamService(
               context.read<ConvexService>(),

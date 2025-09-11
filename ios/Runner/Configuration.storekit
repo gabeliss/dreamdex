@@ -66,7 +66,7 @@
       "codeOffers" : [
 
       ],
-      "displayPrice" : "9.99",
+      "displayPrice" : "4.99",
       "familyShareable" : false,
       "groupNumber" : 1,
       "internalID" : "6739052399",
@@ -78,7 +78,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.dreamdex.premium.monthly",
+      "productID" : "com.gabeliss.dreamdex.premium.monthly",
       "recurringSubscriptionPeriod" : "P1M",
       "referenceName" : "Premium Monthly",
       "subscriptionGroupID" : "21554199",
@@ -91,7 +91,7 @@
       "codeOffers" : [
 
       ],
-      "displayPrice" : "99.99",
+      "displayPrice" : "39.99",
       "familyShareable" : false,
       "groupNumber" : 1,
       "internalID" : "6739052677",
@@ -107,7 +107,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.dreamdex.premium.annual",
+      "productID" : "com.gabeliss.dreamdex.premium.annual",
       "recurringSubscriptionPeriod" : "P1Y",
       "referenceName" : "Premium Annual",
       "subscriptionGroupID" : "21554199",
