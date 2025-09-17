@@ -29,6 +29,8 @@ class DreamService extends ChangeNotifier {
   }
   
   void _onAuthChanged() {
+    debugPrint('🔄 DreamService: Auth state changed - isAuthenticated: ${_authService.isAuthenticated}');
+    
     if (_authService.isAuthenticated) {
       // Wait for ConvexService to have userId set before loading dreams
       _waitForUserIdAndLoadDreams();
@@ -41,10 +43,33 @@ class DreamService extends ChangeNotifier {
   }
   
   Future<void> _waitForUserIdAndLoadDreams() async {
+    // Double-check authentication before starting
+    if (!_authService.isAuthenticated) {
+      debugPrint('🔒 SECURITY: User not authenticated, skipping userId wait');
+      return;
+    }
+    
+    // Additional check: if ConvexService userId is null, it might mean sign-out is in progress
+    if (_convexService.userId == null) {
+      debugPrint('🔒 SECURITY: ConvexService userId is null, might be during sign-out process');
+      // Give it one more chance in case it's just a timing issue
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!_authService.isAuthenticated || _convexService.userId == null) {
+        debugPrint('🔒 SECURITY: Still no userId after delay, aborting');
+        return;
+      }
+    }
+    
     debugPrint('⏳ SECURITY: Waiting for ConvexService userId to be set...');
     
     // Wait up to 3 seconds for userId to be set
     for (int i = 0; i < 30; i++) {
+      // Check if user is still authenticated before waiting
+      if (!_authService.isAuthenticated) {
+        debugPrint('🔒 SECURITY: User no longer authenticated, aborting userId wait');
+        return;
+      }
+      
       if (_convexService.userId != null) {
         debugPrint('✅ SECURITY: ConvexService userId found: ${_convexService.userId}');
         await _loadDreams();
@@ -53,7 +78,12 @@ class DreamService extends ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 100));
     }
     
-    debugPrint('❌ SECURITY: Timeout waiting for ConvexService userId');
+    // Only log timeout if user is still authenticated
+    if (_authService.isAuthenticated) {
+      debugPrint('❌ SECURITY: Timeout waiting for ConvexService userId');
+    } else {
+      debugPrint('🔒 SECURITY: User signed out during userId wait');
+    }
   }
   
   @override

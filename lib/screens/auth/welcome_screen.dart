@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_colors.dart';
-import 'login_screen.dart';
+import 'signup_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🏠 WELCOME: Building WelcomeScreen');
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView( // 🔑 Added scroll wrapper
@@ -155,7 +156,7 @@ class WelcomeScreen extends StatelessWidget {
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginScreen(),
+            const SignupScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
             position: animation.drive(

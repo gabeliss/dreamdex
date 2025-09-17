@@ -35,6 +35,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
   String _displayTranscript = ''; // Store transcript for display beneath microphone
   late AnimationController _pulseController;
   late AnimationController _waveController;
+  bool _hasContentText = false; // Track if content text exists for button state
 
   @override
   void initState() {
@@ -47,6 +48,16 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       duration: const Duration(seconds: 2),
       vsync: this,
     );
+
+    // Listen to content text changes to update button state
+    _contentController.addListener(() {
+      final hasText = _contentController.text.trim().isNotEmpty;
+      if (_hasContentText != hasText) {
+        setState(() {
+          _hasContentText = hasText;
+        });
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _adjustScrollForKeyboard();
@@ -533,7 +544,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
         Consumer<SubscriptionService>(
           builder: (context, subscriptionService, child) {
             final isPremium = subscriptionService.isPremium;
-            final isButtonDisabled = _contentController.text.trim().isEmpty || 
+            final isButtonDisabled = !_hasContentText ||
                                    aiService.isGeneratingImage ||
                                    !isPremium;
             
@@ -686,6 +697,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       _contentController.clear();
       _displayTranscript = '';
       _contentBeforeRecording = '';
+      _hasContentText = false;
     });
     final speechService = Provider.of<SpeechService>(context, listen: false);
     speechService.clearTranscription();
@@ -830,6 +842,7 @@ class _AddDreamScreenState extends State<AddDreamScreen>
       _generatedImageData = null;
       _displayTranscript = '';
       _contentBeforeRecording = '';
+      _hasContentText = false;
     });
   }
 

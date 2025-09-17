@@ -20,7 +20,7 @@ class PaywallDialog extends StatefulWidget {
 }
 
 class _PaywallDialogState extends State<PaywallDialog> {
-  bool _isLoading = false;
+  String? _loadingPackageId;
 
   String get _featureTitle {
     if (widget.customTitle != null) return widget.customTitle!;
@@ -262,7 +262,7 @@ class _PaywallDialogState extends State<PaywallDialog> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: _isLoading ? null : () => _handlePurchase(package, subscriptionService),
+          onTap: _loadingPackageId != null ? null : () => _handlePurchase(package, subscriptionService),
           child: Container(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -301,7 +301,7 @@ class _PaywallDialogState extends State<PaywallDialog> {
                     fontSize: 14,
                   ),
                 ),
-                if (_isLoading) ...[
+                if (_loadingPackageId == package.identifier) ...[
                   const SizedBox(height: 8),
                   SizedBox(
                     width: 16,
@@ -323,8 +323,8 @@ class _PaywallDialogState extends State<PaywallDialog> {
   }
 
   Future<void> _handlePurchase(Package package, SubscriptionService subscriptionService) async {
-    setState(() => _isLoading = true);
-    
+    setState(() => _loadingPackageId = package.identifier);
+
     try {
       final success = await subscriptionService.purchasePackage(package);
       if (success && mounted) {
@@ -349,7 +349,7 @@ class _PaywallDialogState extends State<PaywallDialog> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _loadingPackageId = null);
       }
     }
   }

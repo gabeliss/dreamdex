@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
+import 'welcome_screen.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../main.dart';
 
@@ -47,8 +48,22 @@ class _LoginScreenState extends State<LoginScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
+              debugPrint('🔙 LOGIN: Back button pressed');
               FocusScope.of(context).unfocus();
-              Navigator.pop(context);
+              debugPrint('🔙 LOGIN: Focus unfocused, checking if can pop');
+              
+              if (Navigator.canPop(context)) {
+                debugPrint('🔙 LOGIN: Can pop, calling Navigator.pop');
+                Navigator.pop(context);
+                debugPrint('🔙 LOGIN: Navigator.pop completed');
+              } else {
+                debugPrint('🔙 LOGIN: Cannot pop, navigating to WelcomeScreen');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                );
+                debugPrint('🔙 LOGIN: Navigation to WelcomeScreen completed');
+              }
             },
           ),
         ),

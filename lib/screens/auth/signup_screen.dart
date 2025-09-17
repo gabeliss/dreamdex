@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_colors.dart';
 import '../main_navigation.dart';
 import 'login_screen.dart';
+import 'welcome_screen.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/convex_service.dart';
 
@@ -55,8 +56,22 @@ class _SignupScreenState extends State<SignupScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
+              debugPrint('🔙 SIGNUP: Back button pressed');
               FocusScope.of(context).unfocus();
-              Navigator.pop(context);
+              debugPrint('🔙 SIGNUP: Focus unfocused, checking if can pop');
+              
+              if (Navigator.canPop(context)) {
+                debugPrint('🔙 SIGNUP: Can pop, calling Navigator.pop');
+                Navigator.pop(context);
+                debugPrint('🔙 SIGNUP: Navigator.pop completed');
+              } else {
+                debugPrint('🔙 SIGNUP: Cannot pop, navigating to WelcomeScreen');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                );
+                debugPrint('🔙 SIGNUP: Navigation to WelcomeScreen completed');
+              }
             },
           ),
         ),

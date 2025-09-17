@@ -109,9 +109,10 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🚪 AUTHGATE: Building AuthGate');
     return Consumer<FirebaseAuthService>(
       builder: (context, authService, child) {
-        debugPrint('AuthGate Consumer: Using authService instance: ${authService.hashCode}');
+        debugPrint('🚪 AUTHGATE Consumer: Using authService instance: ${authService.hashCode}');
         if (!authService.isInitialized) {
           return const Scaffold(
             body: Center(
@@ -181,7 +182,8 @@ class _AuthGateState extends State<AuthGate> {
         } else {
           // Reset initialization flag when user logs out
           _globalServiceInitialized = false;
-          debugPrint('Firebase Auth: User is signed out');
+          debugPrint('🚪 AUTHGATE: Firebase Auth: User is signed out');
+          debugPrint('🚪 AUTHGATE: Returning WelcomeScreen');
           return const WelcomeScreen();
         }
       },
